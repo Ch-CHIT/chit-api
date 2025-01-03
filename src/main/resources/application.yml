@@ -1,0 +1,22 @@
+spring:
+  profiles:
+    active: dev
+    include:
+      - oauth
+      - jwt
+      - api
+  threads:
+    virtual:
+      enabled: true
+  messages:
+    encoding: UTF-8
+  jpa:
+    open-in-view: false
+  flyway:
+    enabled: false
+  cache:
+    jcache:
+      config: classpath:ehcache.xml
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
