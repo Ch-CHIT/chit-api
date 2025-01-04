@@ -44,6 +44,7 @@ dependencies {
     
     // 유틸리티 라이브러리
     implementation("com.aventrix.jnanoid:jnanoid:2.0.0")
+    implementation("io.github.microutils:kotlin-logging:3.0.5")
     
     // API 문서화
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
