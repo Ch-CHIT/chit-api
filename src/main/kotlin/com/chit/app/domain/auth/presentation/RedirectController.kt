@@ -1,4 +1,4 @@
-package com.chit.app.global.base
+package com.chit.app.domain.auth.presentation
 
 import com.chit.app.global.util.NanoIdUtil
 import io.swagger.v3.oas.annotations.Hidden
@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api")
-class BaseController(
+@RequestMapping("/")
+class RedirectController(
         @Value("\${chzzk.auth.clientId}")
         private val clientId: String,
         @Value("\${chzzk.auth.urls.authorization}")
@@ -20,9 +20,7 @@ class BaseController(
 ) {
     @Hidden
     @GetMapping
-    fun redirectToLogin(
-            response: HttpServletResponse
-    ) {
+    fun redirectToLogin(response: HttpServletResponse) {
         val redirectUrl = "$authorizationUri?clientId=$clientId&redirectUri=$redirectUri&state=${NanoIdUtil.generate()}"
         response.sendRedirect(redirectUrl)
     }
