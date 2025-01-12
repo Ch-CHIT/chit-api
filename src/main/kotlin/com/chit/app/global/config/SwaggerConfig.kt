@@ -32,7 +32,7 @@ class SwaggerConfig {
         info = Info()
                 .title(TITLE)
                 .version(VERSION)
-                .description("[치지직 로그인 바로가기](http://localhost:8080/api)")
+                .description("[치지직 로그인 바로가기](http://localhost:8080)")
         
         addSecurityItem(SecurityRequirement().addList(AUTH_SCHEME))
     }
