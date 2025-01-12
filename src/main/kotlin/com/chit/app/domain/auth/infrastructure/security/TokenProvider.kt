@@ -38,7 +38,7 @@ class TokenProvider {
         log.info("JWT 키가 초기화되었습니다.")
     }
     
-    fun createAccessToken(memberId: Long, channelId: String, channelName: String): String {
+    fun createAccessToken(memberId: Long?, channelId: String?, channelName: String?): String {
         val now = Instant.now()
         val validity = now.plusSeconds(accessTokenValidityInSeconds)
         return Jwts.builder()
@@ -51,7 +51,7 @@ class TokenProvider {
                 .compact()
     }
     
-    fun createRefreshToken(memberId: Long): String {
+    fun createRefreshToken(memberId: Long?): String {
         val now = Instant.now()
         val validity = now.plusSeconds(refreshTokenValidityInSeconds)
         return Jwts.builder()
@@ -111,8 +111,6 @@ class TokenProvider {
     }
     
     private fun getClaims(token: String): Claims {
-        log.debug("토큰 claims 파싱 시작")
-        
         return runCatching {
             Jwts.parserBuilder()
                     .setSigningKey(key)
