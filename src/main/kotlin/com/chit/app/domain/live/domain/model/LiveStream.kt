@@ -31,6 +31,7 @@ class LiveStream(
         @Column(name = "live_title")
         private var _liveTitle: String,
         
+        @Enumerated(EnumType.STRING)
         @Column(name = "live_status")
         private var _liveStatus: LiveStatus,
         
