@@ -17,7 +17,7 @@ import java.time.LocalDateTime
         Index(name = "idx_members_channel_id_unique", columnList = "channel_id", unique = true)
     ]
 )
-class Member(
+class Member private constructor(
         
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +45,18 @@ class Member(
     
     fun updateLastLoginTime() {
         this._lastLoginTime = LocalDateTime.now()
+    }
+    
+    companion object {
+        fun create(
+                channelId: String,
+                channelName: String,
+                nickname: String
+        ): Member = Member(
+            channelId = channelId,
+            channelName = channelName,
+            _nickname = nickname
+        )
     }
     
 }
