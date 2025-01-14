@@ -14,14 +14,14 @@ interface JpaSessionParticipantRepository : JpaRepository<SessionParticipant, Lo
     @Query(
         value = """
             SELECT new com.chit.app.domain.session.application.dto.Participant(
-                sp.viewerId,
+                sp.participantId,
                 m.channelName,
                 sp._gameNickname,
                 sp._fixedPick
             )
             FROM SessionParticipant sp
             INNER JOIN sp.contentsSession cs
-            INNER JOIN Member m ON m.id = sp.viewerId
+            INNER JOIN Member m ON m.id = sp.participantId
             WHERE cs.sessionCode = :code and sp._status != :status
             ORDER BY sp._fixedPick DESC, sp._status ASC, sp.id ASC
         """,
@@ -29,7 +29,7 @@ interface JpaSessionParticipantRepository : JpaRepository<SessionParticipant, Lo
                    SELECT COUNT(sp)
                    FROM SessionParticipant sp
                    INNER JOIN sp.contentsSession cs
-                   INNER JOIN Member m ON m.id = sp.viewerId
+                   INNER JOIN Member m ON m.id = sp.participantId
                    WHERE cs.sessionCode = :code and sp._status != :status
                """
     )
@@ -38,5 +38,31 @@ interface JpaSessionParticipantRepository : JpaRepository<SessionParticipant, Lo
             @Param("status") status: ParticipationStatus,
             pageable: Pageable
     ): Page<Participant>
+    
+    @Query(
+        """
+        SELECT sp
+        FROM SessionParticipant sp
+        INNER JOIN FETCH sp.contentsSession cs
+        WHERE cs.sessionCode = :code AND sp._status != :status
+        ORDER BY sp._fixedPick DESC, sp._status ASC, sp.id ASC
+        """
+    )
+    fun findSortedParticipantsBySessionCode(
+            @Param("code") sessionCode: String,
+            @Param("status") status: ParticipationStatus
+    ): List<SessionParticipant>
+    
+    @Query(
+        """
+        SELECT sp
+        FROM SessionParticipant sp
+        WHERE sp.contentsSession.id = :sessionId AND sp.participantId = :participantId
+        """
+    )
+    fun findParticipantBySessionIdAndParticipantId(
+            @Param("sessionId") sessionId: Long?,
+            @Param("participantId") participantId: Long
+    ): SessionParticipant?
     
 }
