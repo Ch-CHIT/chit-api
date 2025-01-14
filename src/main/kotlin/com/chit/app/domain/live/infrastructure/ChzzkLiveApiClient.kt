@@ -2,6 +2,7 @@ package com.chit.app.domain.live.infrastructure
 
 import com.chit.app.domain.live.domain.model.LiveStatus
 import com.chit.app.global.delegate.logger
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
@@ -42,12 +43,15 @@ class ChzzkLiveApiClient(
             val content: Content?
     ) {
         data class Content(
-                val liveId: Long?,
-                val liveTitle: String?,
-                val status: LiveStatus?,
-                val liveCategory: String?,
-                val liveCategoryValue: String?,
-                val openDate: LocalDateTime?,
+                val liveId: Long,
+                val liveTitle: String,
+                val status: LiveStatus,
+                val categoryType: String,
+                val liveCategory: String,
+                val liveCategoryValue: String,
+                @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+                val openDate: LocalDateTime,
+                @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
                 val closeDate: LocalDateTime?,
         )
     }
