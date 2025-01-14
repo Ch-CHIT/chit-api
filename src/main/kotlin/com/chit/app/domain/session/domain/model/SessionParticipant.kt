@@ -21,7 +21,7 @@ import java.time.LocalDateTime
 @Entity
 @Table(
     name = "session_participant",
-    indexes = [Index(name = "idx_member_session", columnList = "viewer_id, contents_session_id", unique = true)]
+    indexes = [Index(name = "idx_participant_session_unique", columnList = "participant_id, contents_session_id", unique = true)]
 )
 class SessionParticipant private constructor(
         
@@ -35,8 +35,8 @@ class SessionParticipant private constructor(
         val contentsSession: ContentsSession,
         
         @field:NotNull(message = "회원 ID가 존재하지 않습니다.")
-        @Column(name = "viewer_id", nullable = false)
-        val viewerId: Long,
+        @Column(name = "participant_id", nullable = false)
+        val participantId: Long,
         
         @field:NotEmpty(message = "프로필 닉네임을 찾을 수 없습니다.")
         @Column(name = "game_nickname", nullable = false)
@@ -68,9 +68,7 @@ class SessionParticipant private constructor(
         get() = _fixedPickTime
     
     fun updateStatus(status: ParticipationStatus) {
-        require(_status.canTransitionTo(status)) {
-            "현재 상태에서 $status 로 전환할 수 없습니다."
-        }
+        require(_status.canTransitionTo(status)) { "현재 상태에서 $status 로 전환할 수 없습니다." }
         _status = status
     }
     
@@ -80,9 +78,9 @@ class SessionParticipant private constructor(
     }
     
     companion object {
-        fun create(viewerId: Long, gameNickname: String, contentsSession: ContentsSession): SessionParticipant {
+        fun create(participantId: Long, gameNickname: String, contentsSession: ContentsSession): SessionParticipant {
             return SessionParticipant(
-                viewerId = viewerId,
+                participantId = participantId,
                 contentsSession = contentsSession,
                 _gameNickname = gameNickname
             )
