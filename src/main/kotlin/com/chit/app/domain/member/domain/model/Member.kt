@@ -14,7 +14,8 @@ import java.time.LocalDateTime
 @Table(
     name = "members",
     indexes = [
-        Index(name = "idx_members_channel_id_unique", columnList = "channel_id", unique = true)
+        Index(name = "idx_members_channel_id_unique", columnList = "channel_id", unique = true),
+        Index(name = "idex_members_channel_name_unique", columnList = "channel_name", unique = true)
     ]
 )
 class Member private constructor(
