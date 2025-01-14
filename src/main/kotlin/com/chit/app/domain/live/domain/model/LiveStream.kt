@@ -20,13 +20,13 @@ class LiveStream(
         val id: Long? = null,
         
         @Column(name = "live_id", nullable = false)
-        val liveId: Long,
+        val liveId: Long?,
         
         @Column(name = "streamer_id", nullable = false)
-        val streamerId: Long,
+        val streamerId: Long?,
         
         @Column(name = "channel_id", nullable = false)
-        val channelId: String,
+        val channelId: String?,
         
         @Column(name = "live_title")
         private var _liveTitle: String,
@@ -72,5 +72,51 @@ class LiveStream(
     
     val closeDate: LocalDateTime?
         get() = _closeDate
+    
+    fun update(
+            liveTitle: String,
+            liveStatus: LiveStatus,
+            categoryType: String,
+            liveCategory: String,
+            liveCategoryValue: String,
+            openDate: LocalDateTime,
+            closeDate: LocalDateTime?
+    ) {
+        this._liveTitle = liveTitle
+        this._liveStatus = liveStatus
+        this._categoryType = categoryType
+        this._liveCategory = liveCategory
+        this._liveCategoryValue = liveCategoryValue
+        this._openDate = openDate
+        this._closeDate = closeDate
+    }
+    
+    companion object {
+        fun create(
+                liveId: Long,
+                streamerId: Long?,
+                channelId: String,
+                liveTitle: String,
+                liveStatus: LiveStatus,
+                categoryType: String,
+                liveCategory: String,
+                liveCategoryValue: String,
+                openDate: LocalDateTime,
+                closeDate: LocalDateTime?
+        ): LiveStream {
+            return LiveStream(
+                liveId = liveId,
+                streamerId = streamerId,
+                channelId = channelId,
+                _liveTitle = liveTitle,
+                _liveStatus = liveStatus,
+                _categoryType = categoryType,
+                _liveCategory = liveCategory,
+                _liveCategoryValue = liveCategoryValue,
+                _openDate = openDate,
+                _closeDate = closeDate
+            )
+        }
+    }
     
 }
