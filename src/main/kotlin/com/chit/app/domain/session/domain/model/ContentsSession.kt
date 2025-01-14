@@ -9,8 +9,9 @@ import jakarta.persistence.*
 @Table(
     name = "contents_sessions",
     indexes = [
-        Index(name = "idx_contents_sessions_live_id_unq", columnList = "live_id", unique = true),
-        Index(name = "idx_contents_sessions_streamer_id", columnList = "streamer_id")
+        Index(name = "idx_contents_sessions_live_id", columnList = "live_id"),
+        Index(name = "idx_contents_sessions_streamer_id", columnList = "streamer_id"),
+        Index(name = "idx_contents_session_code", columnList = "session_code")
     ]
 )
 class ContentsSession private constructor(
@@ -20,14 +21,15 @@ class ContentsSession private constructor(
         val id: Long? = null,
         
         @Column(name = "live_id", nullable = false)
-        val liveId: Long,
+        val liveId: Long?,
         
         @Column(name = "streamer_id", nullable = false)
-        val streamerId: Long,
+        val streamerId: Long?,
         
         @Column(name = "session_code", nullable = false)
         val sessionCode: String = NanoIdUtil.generate(),
         
+        @Enumerated(EnumType.STRING)
         @Column(name = "status", nullable = false)
         private var _status: SessionStatus = SessionStatus.OPEN,
         
@@ -54,42 +56,37 @@ class ContentsSession private constructor(
     val currentParticipants: Int
         get() = _currentParticipants
     
-    fun updateGameDetails(
-            gameParticipationCode: String,
-            maxParticipantCount: Int
-    ): ContentsSession = apply {
-        require(maxParticipantCount >= 1) {
-            "최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxParticipantCount"
-        }
-        validateSessionIsOpen()
-        this._gameParticipationCode = gameParticipationCode
-        this._maxParticipants = maxParticipantCount
-    }
+    fun updateGameDetails(gameParticipationCode: String?, maxParticipantCount: Int): ContentsSession =
+            apply {
+                require(maxParticipantCount >= 1) { "최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxParticipantCount" }
+                validateSessionIsOpen()
+                this._gameParticipationCode = gameParticipationCode
+                this._maxParticipants = maxParticipantCount
+            }
     
     @Synchronized
-    fun addParticipant(): ContentsSession = apply {
-        validateSessionIsOpen()
-        this._currentParticipants++
-    }
+    fun addParticipant(): ContentsSession =
+            apply {
+                validateSessionIsOpen()
+                this._currentParticipants++
+            }
     
-    fun close(): ContentsSession = apply {
-        validateSessionIsOpen()
-        this._status = SessionStatus.CLOSE
-    }
+    fun close(): ContentsSession =
+            apply {
+                this._status = SessionStatus.CLOSE
+            }
     
-    private fun validateSessionIsOpen() = check(_status == SessionStatus.CLOSE) { "세션이 이미 종료되었습니다. 세션 ID: $id" }
+    private fun validateSessionIsOpen() =
+            check(_status == SessionStatus.OPEN) { "세션이 열려 있지 않습니다. 세션 ID: $id" }
     
     companion object {
         fun create(
-                liveId: Long,
+                liveId: Long?,
                 streamerId: Long,
                 maxParticipants: Int = 1,
                 gameParticipationCode: String?
         ): ContentsSession {
-            require(maxParticipants >= 1) {
-                "최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxParticipants"
-            }
-            
+            require(maxParticipants >= 1) { "최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxParticipants" }
             return ContentsSession(
                 liveId = liveId,
                 streamerId = streamerId,
