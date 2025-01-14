@@ -34,6 +34,9 @@ class SecurityConfig(
             .cors { it.configurationSource(corsConfigurationSource()) }
             .headers { it.frameOptions { frame -> frame.sameOrigin() } }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .exceptionHandling { it.authenticationEntryPoint(jwtAuthenticationEntryPoint) }
+            .requestCache { it.disable() }
+            .securityContext { it.requireExplicitSave(false) }
             .authorizeHttpRequests { request ->
                 request
                         .requestMatchers(
@@ -48,7 +51,6 @@ class SecurityConfig(
                         .anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter::class.java)
-            .exceptionHandling { it.authenticationEntryPoint(jwtAuthenticationEntryPoint) }
             .build()
     
     @Bean
