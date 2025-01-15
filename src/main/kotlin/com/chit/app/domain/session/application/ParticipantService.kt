@@ -27,4 +27,13 @@ class ParticipantService(
                 }
     }
     
+    private fun ContentsSession.toResponseDto(): ContentsSessionResponseDto {
+        return ContentsSessionResponseDto(
+            sessionCode = sessionCode,
+            gameParticipationCode = gameParticipationCode,
+            maxGroupParticipants = maxGroupParticipants,
+            currentParticipants = currentParticipants
+        )
+    }
+    
 }

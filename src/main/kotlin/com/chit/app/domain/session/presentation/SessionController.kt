@@ -25,7 +25,7 @@ class SessionController(
     ): NewContentsSession {
         val createdContentsSession = sessionService.createContentsSession(
             streamerId = streamerId,
-            maxParticipantCount = request.maxParticipantCount,
+            maxGroupParticipants = request.maxParticipantCount,
             gameParticipationCode = request.gameParticipationCode
         )
         return successWithData(createdContentsSession)

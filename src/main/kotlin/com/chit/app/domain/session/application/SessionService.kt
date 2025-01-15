@@ -26,13 +26,13 @@ class SessionService(
     private val log = logger<SessionService>()
     
     @Transactional
-    fun createContentsSession(streamerId: Long, maxParticipantCount: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
+    fun createContentsSession(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
         val liveStream = getOpenLiveStream(streamerId)
-        val savedSession = sessionRepository.save(
+        return sessionRepository.save(
             ContentsSession.create(
                 liveId = liveStream.liveId,
                 streamerId = streamerId,
-                maxParticipants = maxParticipantCount,
+                maxGroupParticipants = maxGroupParticipants,
                 gameParticipationCode = gameParticipationCode
             )
         ).toResponseDto()
@@ -46,12 +46,9 @@ class SessionService(
         val participants = sessionRepository.findPagedParticipantsBySessionCode(session.sessionCode, pageable)
         
         return ContentsSessionResponseDto(
-            sessionId = session.id,
-            status = session.status,
-            liveId = session.liveId,
-            sessionParticipationCode = session.sessionCode,
+            sessionCode = session.sessionCode,
             gameParticipationCode = session.gameParticipationCode,
-            maxParticipants = session.maxParticipants,
+            maxGroupParticipants = session.maxGroupParticipants,
             currentParticipants = session.currentParticipants,
             participants = PagedResponse.from(participants)
         )
@@ -111,13 +108,10 @@ class SessionService(
     
     private fun ContentsSession.toResponseDto(): ContentsSessionResponseDto {
         return ContentsSessionResponseDto(
-            sessionId = this.id,
-            status = this.status,
-            liveId = this.liveId,
-            sessionParticipationCode = this.sessionCode,
-            gameParticipationCode = this.gameParticipationCode,
-            maxParticipants = this.maxParticipants,
-            currentParticipants = this.currentParticipants
+            sessionCode = sessionCode,
+            gameParticipationCode = gameParticipationCode,
+            maxGroupParticipants = maxGroupParticipants,
+            currentParticipants = currentParticipants
         )
     }
     
