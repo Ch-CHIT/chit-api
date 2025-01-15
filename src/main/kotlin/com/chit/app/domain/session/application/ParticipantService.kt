@@ -1,5 +1,9 @@
 package com.chit.app.domain.session.application
 
+import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
+import com.chit.app.domain.session.application.dto.SseEvent
+import com.chit.app.domain.session.application.sse.StreamerSseService
+import com.chit.app.domain.session.domain.model.ContentsSession
 import com.chit.app.domain.session.domain.model.SessionParticipant
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.global.delegate.logger
@@ -8,7 +12,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ParticipantService(
-        private val sessionRepository: SessionRepository
+        private val sessionRepository: SessionRepository,
+        private val streamerSseService: StreamerSseService
 ) {
     
     private val log = logger<ParticipantService>()
@@ -19,6 +24,7 @@ class ParticipantService(
                 ?.apply {
                     val sessionParticipant = SessionParticipant.create(participantId, gameNickname, contentsSession = this)
                     sessionRepository.addParticipant(sessionParticipant)
+                    streamerSseService.publishEvent(streamerId, SseEvent.PARTICIPANT_ADDED, toResponseDto())
                     log.info("참여자 추가 완료: participantId={}, gameNickname={}", participantId, gameNickname)
                 }
                 ?: run {
