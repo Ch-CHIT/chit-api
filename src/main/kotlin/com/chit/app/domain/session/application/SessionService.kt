@@ -36,13 +36,11 @@ class SessionService(
                 gameParticipationCode = gameParticipationCode
             )
         ).toResponseDto()
-        log.info("새로운 참여 세션이 생성되었습니다. 세션 ID: ${savedSession.sessionId}, 라이브 ID: ${savedSession.liveId}")
-        return savedSession
     }
     
     @Transactional(readOnly = true)
     fun getCurrentOpeningContentsSession(streamerId: Long, pageable: Pageable): ContentsSessionResponseDto {
-        val session = sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
+        val session = getOpenContentsSessionByStreamerId(streamerId)
         val participants = sessionRepository.findPagedParticipantsBySessionCode(session.sessionCode, pageable)
         
         return ContentsSessionResponseDto(
@@ -55,13 +53,9 @@ class SessionService(
     }
     
     @Transactional
-    fun updateContentsSession(
-            streamerId: Long,
-            maxGroupParticipants: Int,
-            gameParticipationCode: String?
-    ): ContentsSessionResponseDto {
-        val session = sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
-        session.updateGameDetails(gameParticipationCode, maxGroupParticipants)
+    fun updateContentsSession(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
+        val session = getOpenContentsSessionByStreamerId(streamerId)
+        session.updateGameSettings(gameParticipationCode, maxGroupParticipants)
         
         return with(session.toResponseDto()) {
             streamerSseService.publishEvent(streamerId, SseEvent.SESSION_STATUS_UPDATED, this)
@@ -70,35 +64,37 @@ class SessionService(
     }
     
     @Transactional
-    fun removeParticipantFromSession(
-            streamerId: Long,
-            participantId: Long
-    ) {
-        val session = sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
+    fun removeParticipantFromSession(streamerId: Long, participantId: Long) {
+        val session = getOpenContentsSessionByStreamerId(streamerId)
         val participant = sessionRepository.findParticipantBySessionIdAndParticipantId(session.id, participantId) ?: return
         
         participant.updateStatus(status = ParticipationStatus.REJECTED)
         sessionSseService.disconnectParticipant(session.sessionCode, participantId)
+        streamerSseService.publishEvent(streamerId, SseEvent.PARTICIPANT_REMOVED, session.toResponseDto())
         sessionSseService.updateAllParticipantsOrder(session.sessionCode, SseEvent.PARTICIPANT_REMOVED)
     }
     
     @Transactional
-    fun closeContentsSession(streamerId: Long) {
-        val session = sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
-        session.apply {
-            close()
-            streamerSseService.unsubscribe(streamerId)
-            sessionSseService.removeAllParticipants(sessionCode)
-            log.info("세션 종료 처리 완료: 스트리머 ID = $streamerId, 참여 코드 = ${session.sessionCode}")
-        }
-    }
+    fun closeContentsSession(streamerId: Long) = getOpenContentsSessionByStreamerId(streamerId)
+            .apply {
+                close()
+                streamerSseService.unsubscribe(streamerId)
+                sessionSseService.removeAllParticipants(this.sessionCode)
+                log.info("세션 종료 처리 완료: 스트리머 ID = $streamerId, 참여 코드 = ${this.sessionCode}")
+            }
     
     @Transactional
     fun togglePick(streamerId: Long, participantId: Long) {
-        val session = sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
-        val participant = sessionRepository.findParticipantBySessionIdAndParticipantId(session.id, participantId) ?: throw IllegalArgumentException("찾을 수 없음")
-        participant.toggleFixedPick()
+        val session = getOpenContentsSessionByStreamerId(streamerId)
+        sessionRepository.findParticipantBySessionIdAndParticipantId(session.id, participantId)
+                ?.apply { toggleFixedPick() }
+                ?: throw IllegalArgumentException("참여자 ID ${participantId}가 세션 ID ${session.id}에 존재하지 않습니다.")
+        
         sessionSseService.updateAllParticipantsOrder(session.sessionCode, SseEvent.PARTICIPANT_UPDATED)
+    }
+    
+    private fun getOpenContentsSessionByStreamerId(streamerId: Long): ContentsSession {
+        return sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
     }
     
     private fun getOpenLiveStream(streamerId: Long): LiveStream =
