@@ -36,11 +36,11 @@ class ContentsSession private constructor(
         @Column(name = "game_participation_code", length = 100)
         private var _gameParticipationCode: String? = null,
         
-        @Column(name = "max_participants", nullable = false)
-        private var _maxParticipants: Int = 1,
+        @Column(name = "max_group_participants", nullable = false)
+        private var _maxGroupParticipants: Int = 1,
         
         @Column(name = "current_participants", nullable = false)
-        private var _currentParticipants: Int = 1
+        private var _currentParticipants: Int = 0
 
 ) : BaseEntity() {
     
@@ -50,18 +50,18 @@ class ContentsSession private constructor(
     val gameParticipationCode: String?
         get() = _gameParticipationCode
     
-    val maxParticipants: Int
-        get() = _maxParticipants
+    val maxGroupParticipants: Int
+        get() = _maxGroupParticipants
     
     val currentParticipants: Int
         get() = _currentParticipants
     
-    fun updateGameDetails(gameParticipationCode: String?, maxParticipantCount: Int): ContentsSession =
+    fun updateGameSettings(gameParticipationCode: String?, maxGroupParticipants: Int): ContentsSession =
             apply {
-                require(maxParticipantCount >= 1) { "최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxParticipantCount" }
+                require(maxGroupParticipants >= 1) { "그룹당 최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxGroupParticipants" }
                 validateSessionIsOpen()
                 this._gameParticipationCode = gameParticipationCode
-                this._maxParticipants = maxParticipantCount
+                this._maxGroupParticipants = maxGroupParticipants
             }
     
     @Synchronized
@@ -83,14 +83,14 @@ class ContentsSession private constructor(
         fun create(
                 liveId: Long?,
                 streamerId: Long,
-                maxParticipants: Int = 1,
+                maxGroupParticipants: Int = 1,
                 gameParticipationCode: String?
         ): ContentsSession {
-            require(maxParticipants >= 1) { "최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxParticipants" }
+            require(maxGroupParticipants >= 1) { "그룹당 최대 참가자 수는 1명 이상이어야 합니다. 현재 값: $maxGroupParticipants" }
             return ContentsSession(
                 liveId = liveId,
                 streamerId = streamerId,
-                _maxParticipants = maxParticipants,
+                _maxGroupParticipants = maxGroupParticipants,
                 _gameParticipationCode = gameParticipationCode
             )
         }
