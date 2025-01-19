@@ -1,6 +1,8 @@
 package com.chit.app.domain.session.application.sse
 
 import com.chit.app.domain.session.application.dto.SseEvent
+import com.chit.app.domain.session.application.sse.SseUtil.createSseEmitter
+import com.chit.app.domain.session.application.sse.SseUtil.emitEvent
 import com.chit.app.global.delegate.logger
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
@@ -17,41 +19,42 @@ class StreamerSseService(
     private val log = logger<StreamerSseService>()
     
     fun subscribe(streamerId: Long): SseEmitter {
-        emitters[streamerId]
-                ?.let { unsubscribe(streamerId).also { log.info("기존 SSE 연결을 종료했습니다. 스트리머 ID: {}", streamerId) } }
+        // 기존 연결이 있으면 해제
+        emitters[streamerId]?.let { unsubscribe(streamerId) }
         
-        return SseEmitter(Long.MAX_VALUE)
-                .apply {
-                    emitters[streamerId] = this
-                    onCompletion { unsubscribe(streamerId) }
-                    onTimeout { unsubscribe(streamerId) }
-                    onError { unsubscribe(streamerId) }
-                }.also { log.info("스트리머 {}의 새로운 SSE 연결을 초기화했습니다.", streamerId) }
+        // SseEmitter 생성
+        val emitter = createSseEmitter(
+            timeout = Long.MAX_VALUE,
+            onCompletion = { unsubscribe(streamerId) },
+            onTimeout = { unsubscribe(streamerId) },
+            onError = { unsubscribe(streamerId) }
+        )
+        
+        emitters[streamerId] = emitter
+        log.info("스트리머 {}의 새로운 SSE 연결을 초기화했습니다.", streamerId)
+        
+        return emitter
     }
     
-    fun publishEvent(streamerId: Long, event: SseEvent, data: Any) {
-        emitters[streamerId]?.let { emitter ->
-            executor.submit {
-                runCatching {
-                    emitter.send(
-                        SseEmitter.event()
-                                .name(event.name)
-                                .data(data)
-                    )
-                }.onSuccess {
-                    log.info("스트리머 ID: {}에게 이벤트 '{}'를 성공적으로 전송했습니다. 데이터: {}", streamerId, event.name, data)
-                }.onFailure { error ->
-                    unsubscribe(streamerId)
-                            .also {
+    fun publishEvent(streamerId: Long?, event: SseEvent, data: Any) {
+        emitters[streamerId]
+                ?.let { emitter ->
+                    executor.submit {
+                        runCatching {
+                            emitEvent(emitter, event, data)
+                        }.onSuccess {
+                            log.info("스트리머 ID: {}에게 이벤트 '{}'를 성공적으로 전송했습니다. 데이터: {}", streamerId, event.name, data)
+                        }.onFailure { error ->
+                            unsubscribe(streamerId).also {
                                 log.error(
                                     "스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}",
                                     streamerId,
                                     error.message ?: "알 수 없는 오류"
                                 )
                             }
+                        }
+                    }
                 }
-            }
-        }
     }
     
     fun closeAllSessions() {
@@ -70,7 +73,7 @@ class StreamerSseService(
         emitters.clear()
     }
     
-    fun unsubscribe(streamerId: Long) {
+    fun unsubscribe(streamerId: Long?) {
         emitters.remove(streamerId)?.apply { complete() }
     }
     
