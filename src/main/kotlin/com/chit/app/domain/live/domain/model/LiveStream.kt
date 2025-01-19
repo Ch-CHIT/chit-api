@@ -13,7 +13,7 @@ import java.time.LocalDateTime
         Index(name = "idx_live_streams_streamer_id", columnList = "streamer_id")
     ]
 )
-class LiveStream(
+class LiveStream private constructor(
         
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,26 +52,17 @@ class LiveStream(
 
 ) : BaseEntity() {
     
-    val liveTitle: String
-        get() = _liveTitle
-    
-    val liveStatus: LiveStatus
+    var liveStatus: LiveStatus
         get() = _liveStatus
+        set(value) {
+            _liveStatus = value
+        }
     
-    val categoryType: String
-        get() = _categoryType
-    
-    val liveCategory: String
-        get() = _liveCategory
-    
-    val liveCategoryValue: String
-        get() = _liveCategoryValue
-    
-    val openDate: LocalDateTime
-        get() = _openDate
-    
-    val closeDate: LocalDateTime?
+    var closedDate: LocalDateTime?
         get() = _closeDate
+        set(value) {
+            _closeDate = value
+        }
     
     fun update(
             liveTitle: String,
@@ -93,9 +84,9 @@ class LiveStream(
     
     companion object {
         fun create(
-                liveId: Long,
+                liveId: Long?,
                 streamerId: Long?,
-                channelId: String,
+                channelId: String?,
                 liveTitle: String,
                 liveStatus: LiveStatus,
                 categoryType: String,
