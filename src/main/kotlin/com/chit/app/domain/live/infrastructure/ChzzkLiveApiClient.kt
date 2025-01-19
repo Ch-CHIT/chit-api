@@ -22,7 +22,7 @@ class ChzzkLiveApiClient(
             .defaultHeaders { headers -> headers.contentType = MediaType.APPLICATION_JSON }
             .build()
     
-    fun fetchChzzkLiveDetail(channelId: String): LiveDetailResponse.Content? {
+    fun fetchChzzkLiveDetail(channelId: String?): LiveDetailResponse.Content? {
         return runCatching {
             restClient.get()
                     .uri("$chzzkLiveDetailApiUrl/$channelId/live-detail")
