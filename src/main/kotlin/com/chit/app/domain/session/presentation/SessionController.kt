@@ -10,6 +10,7 @@ import com.chit.app.global.response.SuccessResponse.Companion.success
 import com.chit.app.global.response.SuccessResponse.Companion.successWithData
 import io.swagger.v3.oas.annotations.Parameter
 import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -25,7 +26,7 @@ class SessionController(
     ): NewContentsSession {
         val createdContentsSession = sessionService.createContentsSession(
             streamerId = streamerId,
-            maxGroupParticipants = request.maxParticipantCount,
+            maxGroupParticipants = request.maxGroupParticipants,
             gameParticipationCode = request.gameParticipationCode
         )
         return successWithData(createdContentsSession)
@@ -34,7 +35,7 @@ class SessionController(
     @GetMapping
     fun getCurrentOpeningContentsSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
-            pageable: Pageable
+            @PageableDefault(page = 0, size = 20) pageable: Pageable
     ): DetailContentsSession {
         val contentsSessionDetail = sessionService.getCurrentOpeningContentsSession(streamerId, pageable)
         return successWithData(contentsSessionDetail)
@@ -47,7 +48,7 @@ class SessionController(
     ): DetailContentsSession {
         val updatedContentsSession = sessionService.updateContentsSession(
             streamerId = currentMemberId,
-            maxGroupParticipants = request.maxParticipantCount,
+            maxGroupParticipants = request.maxGroupParticipants,
             gameParticipationCode = request.gameParticipationCode
         )
         return successWithData(updatedContentsSession)
