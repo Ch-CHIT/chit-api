@@ -15,7 +15,7 @@ import java.time.LocalDateTime
     name = "members",
     indexes = [
         Index(name = "idx_members_channel_id_unique", columnList = "channel_id", unique = true),
-        Index(name = "idex_members_channel_name_unique", columnList = "channel_name", unique = true)
+        Index(name = "idx_members_channel_name_unique", columnList = "channel_name", unique = true)
     ]
 )
 class Member private constructor(
@@ -24,25 +24,19 @@ class Member private constructor(
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id: Long? = null,
         
-        @Column(name = "channel_id", nullable = false)
+        @Column(name = "channel_id", nullable = false, length = 32)
         val channelId: String,
         
-        @Column(name = "channel_name", nullable = false)
+        @Column(name = "channel_name", nullable = false, length = 30)
         val channelName: String,
         
-        @Column(name = "nick_name", nullable = false)
+        @Column(name = "nick_name", nullable = false, length = 30)
         private var _nickname: String,
         
         @Column(name = "last_login_time")
         private var _lastLoginTime: LocalDateTime? = null
 
 ) : BaseEntity() {
-    
-    val nickname: String
-        get() = _nickname
-    
-    val lastLoginTime: LocalDateTime?
-        get() = _lastLoginTime
     
     fun updateLastLoginTime() {
         this._lastLoginTime = LocalDateTime.now()
