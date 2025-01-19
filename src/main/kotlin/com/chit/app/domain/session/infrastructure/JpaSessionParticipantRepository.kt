@@ -20,17 +20,21 @@ interface JpaSessionParticipantRepository : JpaRepository<SessionParticipant, Lo
                 sp._fixedPick
             )
             FROM SessionParticipant sp
-            INNER JOIN sp.contentsSession cs
-            INNER JOIN Member m ON m.id = sp.participantId
-            WHERE cs.sessionCode = :code and sp._status != :status
-            ORDER BY sp._fixedPick DESC, sp._status ASC, sp.id ASC
+              JOIN sp.contentsSession cs
+              JOIN Member m ON m.id = sp.participantId
+            WHERE cs.sessionCode = :code
+              AND sp._status != :status
+            ORDER BY sp._fixedPick DESC,
+                     sp._status ASC,
+                     sp.id ASC
         """,
         countQuery = """
                    SELECT COUNT(sp)
                    FROM SessionParticipant sp
-                   INNER JOIN sp.contentsSession cs
-                   INNER JOIN Member m ON m.id = sp.participantId
-                   WHERE cs.sessionCode = :code and sp._status != :status
+                    JOIN sp.contentsSession cs
+                    JOIN Member m ON m.id = sp.participantId
+                   WHERE cs.sessionCode = :code
+                     AND sp._status != :status
                """
     )
     fun findActiveParticipantsBySessionCode(
@@ -43,9 +47,12 @@ interface JpaSessionParticipantRepository : JpaRepository<SessionParticipant, Lo
         """
         SELECT sp
         FROM SessionParticipant sp
-        INNER JOIN FETCH sp.contentsSession cs
-        WHERE cs.sessionCode = :code AND sp._status != :status
-        ORDER BY sp._fixedPick DESC, sp._status ASC, sp.id ASC
+          JOIN FETCH sp.contentsSession cs
+        WHERE cs.sessionCode = :code
+          AND sp._status != :status
+        ORDER BY sp._fixedPick DESC,
+                 sp._status ASC,
+                 sp.id ASC
         """
     )
     fun findSortedParticipantsBySessionCode(
