@@ -1,5 +1,6 @@
 package com.chit.app.domain.live.application
 
+import com.chit.app.domain.live.domain.model.LiveStatus
 import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.domain.live.infrastructure.ChzzkLiveApiClient
@@ -16,26 +17,26 @@ class LiveStreamService(
     @Transactional
     fun upsert(streamerId: Long?, channelId: String) {
         val liveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId) ?: return
-        val existingLiveStream = liveStreamRepository.findOpenLiveStreamByChannelId(channelId)
-        
-        if (existingLiveStream != null) {
-            updateExistingLiveStream(existingLiveStream, liveDetail)
-        } else {
-            createNewLiveStream(streamerId, channelId, liveDetail)
+        when (val existingLiveStream = liveStreamRepository.findOpenLiveStreamByChannelId(channelId)) {
+            null -> createNewLiveStream(streamerId, channelId, liveDetail)
+            else -> {
+                if (liveDetail.liveId != existingLiveStream.liveId) {
+                    existingLiveStream.liveStatus = LiveStatus.CLOSE
+                    createNewLiveStream(streamerId, channelId, liveDetail)
+                } else {
+                    val (_, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = liveDetail
+                    existingLiveStream.update(
+                        liveTitle = liveTitle,
+                        liveStatus = status,
+                        categoryType = categoryType,
+                        liveCategory = liveCategory,
+                        liveCategoryValue = liveCategoryValue,
+                        openDate = openDate,
+                        closeDate = closeDate
+                    )
+                }
+            }
         }
-    }
-    
-    private fun updateExistingLiveStream(existingLiveStream: LiveStream, liveDetail: LiveDetailResponse.Content) {
-        val (_, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = liveDetail
-        existingLiveStream.update(
-            liveTitle = liveTitle,
-            liveStatus = status,
-            categoryType = categoryType,
-            liveCategory = liveCategory,
-            liveCategoryValue = liveCategoryValue,
-            openDate = openDate,
-            closeDate = closeDate
-        )
     }
     
     private fun createNewLiveStream(streamerId: Long?, channelId: String, liveDetail: LiveDetailResponse.Content) {
