@@ -12,6 +12,11 @@ spring:
     encoding: UTF-8
   jpa:
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+        order_updates: true
   flyway:
     enabled: false
   cache:
