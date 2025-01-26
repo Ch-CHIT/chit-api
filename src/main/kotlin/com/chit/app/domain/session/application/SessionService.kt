@@ -64,14 +64,16 @@ class SessionService(
     }
     
     @Transactional
-    fun removeParticipantFromSession(streamerId: Long, participantId: Long) {
+    fun removeParticipantFromSession(streamerId: Long, participantId: Long?) {
+        require(participantId != null) { "유효하지 않은 참여자 정보입니다." }
+        
         val session = getOpenContentsSessionByStreamerId(streamerId)
-        val participant = sessionRepository.findParticipantBySessionIdAndParticipantId(session.id, participantId) ?: return
+        val participant = sessionRepository.findParticipantBySessionIdAndParticipantId(session.id!!, participantId) ?: return
         
         participant.updateStatus(status = ParticipationStatus.REJECTED)
         sessionSseService.disconnectParticipant(session.sessionCode, participantId)
         streamerSseService.publishEvent(streamerId, SseEvent.PARTICIPANT_REMOVED, session.toResponseDto())
-        sessionSseService.updateAllParticipantsOrder(session.sessionCode, SseEvent.PARTICIPANT_REMOVED)
+        sessionSseService.reorderSessionParticipants(session.sessionCode, SseEvent.PARTICIPANT_REMOVED)
     }
     
     @Transactional
@@ -86,21 +88,23 @@ class SessionService(
     @Transactional
     fun togglePick(streamerId: Long, participantId: Long) {
         val session = getOpenContentsSessionByStreamerId(streamerId)
-        sessionRepository.findParticipantBySessionIdAndParticipantId(session.id, participantId)
+        sessionRepository.findParticipantBySessionIdAndParticipantId(session.id!!, participantId)
                 ?.apply { toggleFixedPick() }
                 ?: throw IllegalArgumentException("참여자 ID ${participantId}가 세션 ID ${session.id}에 존재하지 않습니다.")
         
-        sessionSseService.updateAllParticipantsOrder(session.sessionCode, SseEvent.PARTICIPANT_UPDATED)
+        sessionSseService.reorderSessionParticipants(session.sessionCode, SseEvent.PARTICIPANT_UPDATED)
     }
     
     private fun getOpenContentsSessionByStreamerId(streamerId: Long): ContentsSession {
-        return sessionRepository.findOpenContentsSessionByStreamerId(streamerId) ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
+        return sessionRepository.findOpenContentsSessionBy(streamerId = streamerId)
+                ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다.")
     }
     
-    private fun getOpenLiveStream(streamerId: Long): LiveStream =
-            liveStreamRepository.findOpenLiveStreamByStreamerId(streamerId)
-                    ?.also { require(!sessionRepository.hasOpenContentsSession(it.liveId)) { "이미 라이브 방송에 시청자 참여 세션이 열려 있습니다." } }
-                    ?: throw IllegalArgumentException("현재 진행중인 라이브 방송을 찾을 수 없습니다. 다시 확인해 주세요.")
+    private fun getOpenLiveStream(streamerId: Long): LiveStream {
+        return liveStreamRepository.findOpenLiveStreamBy(streamerId = streamerId)
+                ?.also { require(!sessionRepository.hasOpenContentsSession(it.liveId)) { "이미 라이브 방송에 시청자 참여 세션이 열려 있습니다." } }
+                ?: throw IllegalArgumentException("현재 진행중인 라이브 방송을 찾을 수 없습니다. 다시 확인해 주세요.")
+    }
     
     private fun ContentsSession.toResponseDto(): ContentsSessionResponseDto {
         return ContentsSessionResponseDto(

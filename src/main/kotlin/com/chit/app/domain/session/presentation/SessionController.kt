@@ -65,7 +65,7 @@ class SessionController(
     @DeleteMapping("/participants/{participantId}")
     fun removeParticipantFromSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
-            @PathVariable("participantId") participantId: Long
+            @PathVariable("participantId") participantId: Long?
     ): Void {
         sessionService.removeParticipantFromSession(streamerId, participantId)
         return success()
