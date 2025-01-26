@@ -4,7 +4,7 @@ import com.chit.app.domain.live.domain.model.LiveStatus
 import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.domain.live.infrastructure.ChzzkLiveApiClient
-import com.chit.app.domain.live.infrastructure.ChzzkLiveApiClient.LiveDetailResponse
+import com.chit.app.domain.live.infrastructure.response.LiveDetailResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -15,36 +15,28 @@ class LiveStreamService(
 ) {
     
     @Transactional
-    fun upsert(streamerId: Long?, channelId: String) {
-        val liveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId) ?: return
-        when (val existingLiveStream = liveStreamRepository.findOpenLiveStreamByChannelId(channelId)) {
-            null -> createNewLiveStream(streamerId, channelId, liveDetail)
-            else -> {
-                if (liveDetail.liveId != existingLiveStream.liveId) {
-                    existingLiveStream.liveStatus = LiveStatus.CLOSE
-                    createNewLiveStream(streamerId, channelId, liveDetail)
-                } else {
-                    val (_, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = liveDetail
-                    existingLiveStream.update(
-                        liveTitle = liveTitle,
-                        liveStatus = status,
-                        categoryType = categoryType,
-                        liveCategory = liveCategory,
-                        liveCategoryValue = liveCategoryValue,
-                        openDate = openDate,
-                        closeDate = closeDate
-                    )
+    fun saveOrUpdateLiveStream(streamerId: Long?, channelId: String) {
+        val fetchedLiveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId) ?: return
+        val existingLiveStream = liveStreamRepository.findOpenLiveStreamBy(channelId = channelId)
+                ?: run {
+                    // 기존 라이브 스트림이 없으면 새로 생성
+                    createLiveStream(streamerId, channelId, fetchedLiveDetail)
+                    return
                 }
-            }
+        
+        if (fetchedLiveDetail.liveId != existingLiveStream.liveId) {
+            // 라이브 ID가 다르면 기존 스트림을 닫고 새 스트림 생성
+            existingLiveStream.liveStatus = LiveStatus.CLOSE
+            createLiveStream(streamerId, channelId, fetchedLiveDetail)
+        } else {
+            // 라이브 ID가 같으면 업데이트
+            updateLiveStream(existingLiveStream, fetchedLiveDetail)
         }
     }
     
-    private fun createNewLiveStream(streamerId: Long?, channelId: String, liveDetail: LiveDetailResponse.Content) {
-        val (liveId, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = liveDetail
-        LiveStream.create(
-            liveId = liveId,
-            streamerId = streamerId,
-            channelId = channelId,
+    private fun updateLiveStream(existingLiveStream: LiveStream, liveDetail: LiveDetailResponse.Content) {
+        val (_, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = liveDetail
+        existingLiveStream.update(
             liveTitle = liveTitle,
             liveStatus = status,
             categoryType = categoryType,
@@ -52,6 +44,21 @@ class LiveStreamService(
             liveCategoryValue = liveCategoryValue,
             openDate = openDate,
             closeDate = closeDate
+        )
+    }
+    
+    private fun createLiveStream(streamerId: Long?, channelId: String, fetchedLiveDetail: LiveDetailResponse.Content) {
+        LiveStream.create(
+            streamerId = streamerId,
+            channelId = channelId,
+            liveId = fetchedLiveDetail.liveId,
+            liveTitle = fetchedLiveDetail.liveTitle,
+            liveStatus = fetchedLiveDetail.status,
+            categoryType = fetchedLiveDetail.categoryType,
+            liveCategory = fetchedLiveDetail.liveCategory,
+            liveCategoryValue = fetchedLiveDetail.liveCategoryValue,
+            openDate = fetchedLiveDetail.openDate,
+            closeDate = fetchedLiveDetail.closeDate
         ).also(liveStreamRepository::save)
     }
     

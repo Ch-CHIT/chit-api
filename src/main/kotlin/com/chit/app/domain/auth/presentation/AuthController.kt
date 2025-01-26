@@ -39,7 +39,7 @@ class AuthController(
             cookieInfo = CookieInfo.REFRESH_TOKEN,
             value = tokenInfo.refreshToken
         )
-        liveStreamService.upsert(tokenInfo.memberId, tokenInfo.channelId)
+        liveStreamService.saveOrUpdateLiveStream(tokenInfo.memberId, tokenInfo.channelId)
         return successWithData(tokenInfo.accessToken)
     }
     
