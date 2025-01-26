@@ -20,32 +20,40 @@ class LiveStreamScheduler(
 ) {
     private val log = logger<LiveStreamScheduler>()
     
-    @Scheduled(cron = "0 */10 * * * *")
+    @Scheduled(cron = "0 0 * * * *")
     fun update() {
         val futures = liveStreamRepository.findAllOpenLiveStreams().map { liveStream ->
             CompletableFuture.supplyAsync({
                 try {
-                    chzzkLiveApiClient.fetchChzzkLiveDetail(liveStream.channelId)?.let { liveDetail ->
-                        when {
-                            liveStream.liveId != liveDetail.liveId -> {
-                                liveStream.liveStatus = LiveStatus.CLOSE
-                                liveStream.closedDate = LocalDateTime.now()
-                                log.info("라이브 ID가 변경되었습니다. 기존 상태를 CLOSE로 업데이트합니다 - 채널 ID: ${liveStream.channelId}, 기존 라이브 ID: ${liveStream.liveId}, 새로운 라이브 ID: ${liveDetail.liveId}")
-                            }
-                            
-                            else                                   -> {
-                                val (_, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = liveDetail
-                                liveStream.update(
-                                    liveTitle = liveTitle,
-                                    liveStatus = status,
-                                    categoryType = categoryType,
-                                    liveCategory = liveCategory,
-                                    liveCategoryValue = liveCategoryValue,
-                                    openDate = openDate,
-                                    closeDate = closeDate
-                                )
-                                log.info("라이브 스트림 정보를 업데이트했습니다 - 채널 ID: ${liveStream.channelId}, 상태: $status, 제목: $liveTitle, 카테고리: $categoryType, 시작 시간: $openDate, 종료 시간: $closeDate")
-                            }
+                    chzzkLiveApiClient.fetchChzzkLiveDetail(liveStream.channelId!!)?.let { liveDetail ->
+                        if (liveStream.liveId != liveDetail.liveId) {
+                            liveStream.liveStatus = LiveStatus.CLOSE
+                            liveStream.closedDate = LocalDateTime.now()
+                            log.info(
+                                "라이브 ID가 변경되었습니다. 기존 상태를 CLOSE로 업데이트합니다 - " +
+                                        "채널 ID: ${liveStream.channelId}, " +
+                                        "기존 라이브 ID: ${liveStream.liveId}, " +
+                                        "새로운 라이브 ID: ${liveDetail.liveId}"
+                            )
+                        } else {
+                            liveStream.update(
+                                liveTitle = liveDetail.liveTitle,
+                                liveStatus = liveDetail.status,
+                                categoryType = liveDetail.categoryType,
+                                liveCategory = liveDetail.liveCategory,
+                                liveCategoryValue = liveDetail.liveCategoryValue,
+                                openDate = liveDetail.openDate,
+                                closeDate = liveDetail.closeDate
+                            )
+                            log.info(
+                                "라이브 스트림 정보를 업데이트했습니다 - " +
+                                        "채널 ID: ${liveStream.channelId}, " +
+                                        "상태: ${liveDetail.status}, " +
+                                        "제목: ${liveDetail.liveTitle}, " +
+                                        "카테고리: ${liveDetail.categoryType}, " +
+                                        "시작 시간: ${liveDetail.openDate}, " +
+                                        "종료 시간: ${liveDetail.closeDate}"
+                            )
                         }
                         liveStream
                     }
