@@ -34,9 +34,16 @@ dependencies {
     // Kotlin 관련 라이브러리
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     
+    // Querydsl
+    implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
+    kapt("com.querydsl:querydsl-apt:5.1.0:jakarta")
+    kapt("jakarta.annotation:jakarta.annotation-api")
+    kapt("jakarta.persistence:jakarta.persistence-api")
+    
     // 캐시 및 저장소 라이브러리
     implementation("org.ehcache:ehcache:3.10.8:jakarta")
     runtimeOnly("com.h2database:h2")
+    runtimeOnly("org.postgresql:postgresql")
     
     // 보안 관련 라이브러리
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
