@@ -15,14 +15,12 @@ class StreamerSseService(
         private val executor: ExecutorService
 ) {
     
-    private val emitters = ConcurrentHashMap<Long, SseEmitter>()
     private val log = logger<StreamerSseService>()
+    private val emitters = ConcurrentHashMap<Long, SseEmitter>()
     
     fun subscribe(streamerId: Long): SseEmitter {
-        // 기존 연결이 있으면 해제
         emitters[streamerId]?.let { unsubscribe(streamerId) }
         
-        // SseEmitter 생성
         val emitter = createSseEmitter(
             timeout = Long.MAX_VALUE,
             onCompletion = { unsubscribe(streamerId) },
@@ -31,31 +29,37 @@ class StreamerSseService(
         )
         
         emitters[streamerId] = emitter
-        log.info("스트리머 {}의 새로운 SSE 연결을 초기화했습니다.", streamerId)
+        emitEvent(
+            emitter, SseEvent.STREAMER_SSE_INITIALIZATION, mapOf(
+                "status" to "OK",
+                "message" to "SSE 연결이 성공적으로 설정되었습니다."
+            )
+        )
         
+        log.info("스트리머 {}의 새로운 SSE 연결을 초기화했습니다.", streamerId)
         return emitter
     }
     
-    fun publishEvent(streamerId: Long?, event: SseEvent, data: Any) {
-        emitters[streamerId]
-                ?.let { emitter ->
-                    executor.submit {
-                        runCatching {
-                            emitEvent(emitter, event, data)
-                        }.onSuccess {
-                            log.info("스트리머 ID: {}에게 이벤트 '{}'를 성공적으로 전송했습니다. 데이터: {}", streamerId, event.name, data)
-                        }.onFailure { error ->
-                            unsubscribe(streamerId).also {
-                                log.error(
-                                    "스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}",
-                                    streamerId,
-                                    error.message ?: "알 수 없는 오류"
-                                )
+    fun publishEvent(streamerId: Long?, event: SseEvent, data: Any) =
+            emitters[streamerId]
+                    ?.let { emitter ->
+                        CompletableFuture.runAsync({
+                            runCatching {
+                                emitEvent(emitter, event, data)
+                            }.onSuccess {
+                                log.debug("스트리머 ID: {}에게 이벤트 '{}'를 성공적으로 전송했습니다. 데이터: {}", streamerId, event.name, data)
+                            }.onFailure { error ->
+                                unsubscribe(streamerId).also {
+                                    log.error(
+                                        "스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}",
+                                        streamerId,
+                                        error.message ?: "알 수 없는 오류"
+                                    )
+                                }
                             }
-                        }
+                        }, executor)
                     }
-                }
-    }
+    
     
     fun closeAllSessions() {
         val futures = emitters.values.map { emitter ->
@@ -69,12 +73,12 @@ class StreamerSseService(
                 }
             }, executor)
         }
+        
         CompletableFuture.allOf(*futures.toTypedArray()).join()
         emitters.clear()
     }
     
-    fun unsubscribe(streamerId: Long?) {
-        emitters.remove(streamerId)?.apply { complete() }
-    }
+    fun unsubscribe(streamerId: Long?) =
+            emitters.remove(streamerId)?.apply { complete() }
     
 }
