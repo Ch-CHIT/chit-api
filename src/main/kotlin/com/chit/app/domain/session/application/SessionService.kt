@@ -27,27 +27,32 @@ class SessionService(
     
     @Transactional
     fun createContentsSession(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
-        val liveStream = getOpenLiveStream(streamerId)
-        return sessionRepository.save(
-            ContentsSession.create(
-                liveId = liveStream.liveId,
-                streamerId = streamerId,
-                maxGroupParticipants = maxGroupParticipants,
-                gameParticipationCode = gameParticipationCode
-            )
-        ).toResponseDto()
+        val openLiveStream = getOpenLiveStream(streamerId)
+        check(!sessionRepository.existsOpenContentsSession(openLiveStream.liveId!!)) {
+            "이미 진행 중인 컨텐츠 세션이 존재합니다. 중복 생성을 할 수 없습니다."
+        }
+        
+        val contentsSession = ContentsSession.create(
+            liveId = openLiveStream.liveId,
+            streamerId = streamerId,
+            maxGroupParticipants = maxGroupParticipants,
+            gameParticipationCode = gameParticipationCode
+        )
+        
+        val savedSession = sessionRepository.save(contentsSession)
+        return savedSession.toResponseDto()
     }
     
     @Transactional(readOnly = true)
     fun getCurrentOpeningContentsSession(streamerId: Long, pageable: Pageable): ContentsSessionResponseDto {
-        val session = getOpenContentsSessionByStreamerId(streamerId)
-        val participants = sessionRepository.findPagedParticipantsBySessionCode(session.sessionCode, pageable)
+        val openContentsSession = getOpenContentsSessionByStreamerId(streamerId)
+        val participants = sessionRepository.findPagedParticipantsBySessionCode(openContentsSession.sessionCode, pageable)
         
         return ContentsSessionResponseDto(
-            sessionCode = session.sessionCode,
-            gameParticipationCode = session.gameParticipationCode,
-            maxGroupParticipants = session.maxGroupParticipants,
-            currentParticipants = session.currentParticipants,
+            sessionCode = openContentsSession.sessionCode,
+            gameParticipationCode = openContentsSession.gameParticipationCode,
+            maxGroupParticipants = openContentsSession.maxGroupParticipants,
+            currentParticipants = openContentsSession.currentParticipants,
             participants = PagedResponse.from(participants)
         )
     }
@@ -70,7 +75,9 @@ class SessionService(
         val session = getOpenContentsSessionByStreamerId(streamerId)
         val participant = sessionRepository.findParticipantBySessionIdAndParticipantId(session.id!!, participantId) ?: return
         
+        session.removeParticipant()
         participant.updateStatus(status = ParticipationStatus.REJECTED)
+        
         sessionSseService.disconnectParticipant(session.sessionCode, participantId)
         streamerSseService.publishEvent(streamerId, SseEvent.PARTICIPANT_REMOVED, session.toResponseDto())
         sessionSseService.reorderSessionParticipants(session.sessionCode, SseEvent.PARTICIPANT_REMOVED)
@@ -102,7 +109,6 @@ class SessionService(
     
     private fun getOpenLiveStream(streamerId: Long): LiveStream {
         return liveStreamRepository.findOpenLiveStreamBy(streamerId = streamerId)
-                ?.also { require(!sessionRepository.hasOpenContentsSession(it.liveId)) { "이미 라이브 방송에 시청자 참여 세션이 열려 있습니다." } }
                 ?: throw IllegalArgumentException("현재 진행중인 라이브 방송을 찾을 수 없습니다. 다시 확인해 주세요.")
     }
     
