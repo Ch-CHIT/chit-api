@@ -38,6 +38,9 @@ class SessionParticipant private constructor(
 
 ) : BaseEntity() {
     
+    val fixedPick: Boolean
+        get() = _fixedPick
+    
     fun updateStatus(status: ParticipationStatus) {
         require(_status.canTransitionTo(status)) { "현재 상태에서 $status 로 전환할 수 없습니다." }
         _status = status
