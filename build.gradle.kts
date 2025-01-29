@@ -27,6 +27,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     
     // JSON 직렬화 및 역직렬화
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -41,9 +42,14 @@ dependencies {
     kapt("jakarta.persistence:jakarta.persistence-api")
     
     // 캐시 및 저장소 라이브러리
-    implementation("org.ehcache:ehcache:3.10.8:jakarta")
+    implementation("org.ehcache:ehcache:3.10.8")
+    implementation("org.hibernate.orm:hibernate-jcache:6.5.3.Final")
+    
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
+    
+    // flyway
+    implementation("org.flywaydb:flyway-database-postgresql:10.20.1")
     
     // 보안 관련 라이브러리
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
