@@ -71,6 +71,14 @@ class ContentsSession private constructor(
                 this._currentParticipants++
             }
     
+    @Synchronized
+    fun removeParticipant(): ContentsSession =
+            apply {
+                validateSessionIsOpen()
+                require(_currentParticipants > 0) { "현재 참가자가 0명 이하입니다. 참가자를 감소시킬 수 없습니다." }
+                this._currentParticipants--
+            }
+    
     fun close(): ContentsSession =
             apply {
                 this._status = SessionStatus.CLOSE
