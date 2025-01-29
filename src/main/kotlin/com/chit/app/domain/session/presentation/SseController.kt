@@ -19,19 +19,15 @@ class SseController(
 ) {
     
     @GetMapping("/streamer/init", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun init(
-            @Parameter(hidden = true) @CurrentMemberId streamerId: Long
-    ): SseEmitter {
-        return streamerSseService.subscribe(streamerId)
-    }
+    fun init(@Parameter(hidden = true) @CurrentMemberId streamerId: Long): SseEmitter =
+            streamerSseService.subscribe(streamerId)
     
     @GetMapping("/viewer/subscribe", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun subscribe(
             @Parameter(hidden = true) @CurrentMemberId viewerId: Long,
             @RequestParam sessionParticipationCode: String,
             @RequestParam gameNickname: String
-    ): SseEmitter {
-        return sessionSseService.subscribe(viewerId, sessionParticipationCode, gameNickname)
-    }
+    ): SseEmitter =
+            sessionSseService.subscribe(viewerId, sessionParticipationCode, gameNickname)
     
 }
