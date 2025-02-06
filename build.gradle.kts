@@ -34,6 +34,8 @@ dependencies {
     
     // Kotlin 관련 라이브러리
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     
     // Querydsl
     implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
