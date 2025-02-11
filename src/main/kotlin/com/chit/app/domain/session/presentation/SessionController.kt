@@ -42,7 +42,7 @@ class SessionController(
     }
     
     @PutMapping
-    fun updateSession(
+    suspend fun updateSession(
             @Parameter(hidden = true) @CurrentMemberId currentMemberId: Long,
             @RequestBody request: ContentsSessionUpsertRequestDto
     ): DetailContentsSession {
@@ -55,7 +55,7 @@ class SessionController(
     }
     
     @DeleteMapping
-    fun closeSession(
+    suspend fun closeSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long
     ): Void {
         sessionService.closeContentsSession(streamerId)
@@ -63,7 +63,7 @@ class SessionController(
     }
     
     @DeleteMapping("/participants/{participantId}")
-    fun removeParticipantFromSession(
+    suspend fun removeParticipantFromSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PathVariable("participantId") participantId: Long?
     ): Void {
@@ -72,7 +72,7 @@ class SessionController(
     }
     
     @PutMapping("/participants/{participantId}/pick")
-    fun togglePick(
+    suspend fun togglePick(
             @PathVariable("participantId") participantId: Long,
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long
     ): Void {

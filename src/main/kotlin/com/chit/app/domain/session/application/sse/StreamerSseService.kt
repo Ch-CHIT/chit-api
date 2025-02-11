@@ -51,7 +51,7 @@ class StreamerSseService {
         }
     }
     
-    suspend fun closeAllSessions() = coroutineScope {
+    suspend fun closeAllSessionEmitters() = coroutineScope {
         emitters.values.map { emitter ->
             async(Dispatchers.IO) {
                 runCatching {
