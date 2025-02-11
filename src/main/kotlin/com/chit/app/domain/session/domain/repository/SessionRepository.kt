@@ -20,12 +20,10 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
-import java.util.concurrent.ExecutorService
 
 @Repository
 class SessionRepository(
         private val query: JPAQueryFactory,
-        private val executor: ExecutorService,
         private val sessionRepository: JpaContentsSessionRepository,
         private val participantRepository: JpaSessionParticipantRepository,
 ) {
