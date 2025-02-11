@@ -17,8 +17,8 @@ class SseShutdownListener(
     
     override fun onApplicationEvent(event: ContextClosedEvent) {
         runBlocking {
-            streamerSseService.closeAllSessions()
-            sessionSseService.clearAllSessions()
+            streamerSseService.closeAllSessionEmitters()
+            sessionSseService.clearAllParticipantEmitters()
             sessionRepository.closeAllOpenSessions()
         }
     }
