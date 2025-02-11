@@ -2,24 +2,27 @@ package com.chit.app.domain.session.application.sse
 
 import com.chit.app.domain.session.application.ParticipantService
 import com.chit.app.domain.session.application.dto.SseEvent
+import com.chit.app.domain.session.application.event.ParticipantDisconnectionEvent
 import com.chit.app.domain.session.application.sse.SseUtil.completeAllEmitters
 import com.chit.app.domain.session.application.sse.SseUtil.createSseEmitter
 import com.chit.app.domain.session.application.sse.SseUtil.emitEvent
-import com.chit.app.domain.session.domain.model.SessionParticipant
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.global.delegate.logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutorService
+import kotlin.system.measureTimeMillis
 
 @Service
 class SessionSseService(
-        private val executor: ExecutorService,
         private val participantService: ParticipantService,
-        private val sessionRepository: SessionRepository
+        private val sessionRepository: SessionRepository,
+        private val eventPublisher: ApplicationEventPublisher,
 ) {
     
     private val log = logger<SessionSseService>()
@@ -29,7 +32,7 @@ class SessionSseService(
     private val emitters = ConcurrentHashMap<String, ConcurrentHashMap<Long, SseEmitter>>()
     
     @Transactional
-    fun subscribe(participantId: Long, sessionCode: String, gameNickname: String): SseEmitter {
+    suspend fun subscribe(participantId: Long, sessionCode: String, gameNickname: String): SseEmitter {
         val emitter = initializeEmitter(sessionCode, participantId)
         participantService.joinSession(sessionCode, participantId, gameNickname)
         reorderSessionParticipants(sessionCode, SseEvent.PARTICIPANT_ADDED)
@@ -37,150 +40,118 @@ class SessionSseService(
     }
     
     fun disconnectParticipant(sessionCode: String, participantId: Long) {
-        val sessionEmitters = emitters[sessionCode]
-        if (sessionEmitters == null) {
-            log.warn("세션 {}이 존재하지 않습니다.", sessionCode)
-            return
-        }
-        
-        val emitter = sessionEmitters.remove(participantId)
-        if (emitter == null) {
-            log.warn("세션 {}에서 참가자 {}의 이미터를 찾을 수 없습니다.", sessionCode, participantId)
-            return
-        }
-        
+        val sessionEmitters = emitters[sessionCode] ?: return
+        val emitter = sessionEmitters.remove(participantId) ?: return
         try {
             emitter.complete()
+            participantSessionMap.remove(participantId)
+            if (sessionEmitters.isEmpty()) {
+                emitters.remove(sessionCode)
+                log.info("빈 세션 {} 정리 완료", sessionCode)
+            }
+            log.info("참가자 제거 완료 - 세션: {}, 참가자: {}", sessionCode, participantId)
         } catch (error: Exception) {
             log.error("참가자 {}의 연결 종료 중 오류 발생: {}", participantId, error.message, error)
         }
-        
-        participantSessionMap.remove(participantId)
-        checkAndCleanupEmptySession(sessionCode, sessionEmitters)
-        log.info("참가자 제거 완료 - 세션: {}, 참가자: {}", sessionCode, participantId)
     }
     
-    fun removeAllParticipants(sessionCode: String) {
+    suspend fun disconnectAllParticipants(sessionCode: String) {
         val sessionEmitters = emitters.remove(sessionCode) ?: return
-        val futures = sessionEmitters.map { (participantId, emitter) ->
-            CompletableFuture.runAsync({
-                runCatching {
-                    emitEvent(emitter, SseEvent.SESSION_CLOSED, "세션이 종료되었습니다.")
-                    emitter.complete()
-                }.onFailure { error ->
-                    log.error("사용자 {}의 SSE 연결 종료 중 오류 발생: {}", participantId, error.message)
+        val timeTaken = measureTimeMillis {
+            coroutineScope {
+                sessionEmitters.forEach { (participantId, emitter) ->
+                    launch(Dispatchers.IO) {
+                        try {
+                            emitEvent(emitter, SseEvent.SESSION_CLOSED, "세션이 종료되었습니다.")
+                            emitter.complete()
+                            log.info("사용자 {}의 SSE 연결이 성공적으로 종료되었습니다.", participantId)
+                        } catch (error: Exception) {
+                            log.error("사용자 {}의 SSE 연결 종료 중 오류 발생: {}", participantId, error.message, error)
+                        }
+                    }
                 }
-            }, executor)
+            }
         }
-        
-        CompletableFuture.allOf(*futures.toTypedArray()).join()
-        log.info("파티 {}의 모든 emitters가 성공적으로 종료되었습니다.", sessionCode)
+        log.info("파티 {}의 모든 emitters가 성공적으로 종료되었습니다. 소요 시간: {} ms", sessionCode, timeTaken)
     }
     
-    fun clearAllSessions() {
-        completeAllEmitters(
-            executor = executor,
-            emitters = emitters.entries.flatMap { (_, participantEmitters) -> participantEmitters.values },
-            onFailure = { error -> log.error("SSE 연결 종료 중 오류가 발생했습니다: {}", error.message) }
-        ).also { emitters.clear() }
-    }
+    suspend fun clearAllParticipantEmitters() =
+            completeAllEmitters(
+                emitters = emitters.entries.flatMap { (_, participantEmitters) -> participantEmitters.values },
+                onFailure = { error -> log.error("SSE 연결 종료 중 오류가 발생했습니다: {}", error.message) }
+            ).also {
+                emitters.clear()
+            }
     
-    fun reorderSessionParticipants(sessionCode: String, sseEvent: SseEvent) {
+    suspend fun reorderSessionParticipants(sessionCode: String, sseEvent: SseEvent) {
         val sessionEmitters = emitters[sessionCode] ?: return
         if (sessionEmitters.isEmpty()) {
-            log.debug("세션 ${sessionCode}에 활성화된 이미터가 없습니다")
             return
         }
         
         val participants = sessionRepository.findSortedParticipantsBySessionCode(sessionCode)
-        val futures = participants.mapIndexed { index, participant ->
-            CompletableFuture.runAsync({
-                sendQueuePosition(
-                    order = index + 1,
-                    sseEvent = sseEvent,
-                    sessionCode = sessionCode,
-                    participant = participant
-                )
-            }, executor).exceptionally { error ->
-                log.error("참가자 순서 업데이트 실패 - 세션: {}, 참가자: {}, 에러: {}", sessionCode, participant.id, error.message, error)
-                null
+        val participantEmitters = emitters[sessionCode] ?: return
+        val timeTaken = measureTimeMillis {
+            coroutineScope {
+                participants.mapIndexed { index, participant ->
+                    launch(Dispatchers.IO) {
+                        participantEmitters.get(participant.participantId)?.let { emitter ->
+                            try {
+                                emitEvent(
+                                    emitter, sseEvent,
+                                    mapOf(
+                                        "order" to index + 1,
+                                        "fixed" to participant.fixedPick
+                                    )
+                                )
+                            } catch (error: Exception) {
+                                try {
+                                    emitter.completeWithError(error)
+                                } catch (completionError: Exception) {
+                                    log.error("Emitter 종료 실패 - 이벤트: {}, 에러: {}", sseEvent.name, completionError.message, completionError)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-        
-        CompletableFuture.allOf(*futures.toTypedArray())
-                .thenRun {
-                    log.debug("세션 ${sessionCode}의 모든 참가자 순서 업데이트 완료")
-                }
-                .exceptionally { error ->
-                    log.error("일부 참가자 순서 업데이트 실패 - 세션: {}", sessionCode, error)
-                    null
-                }
+        log.debug("세션 ${sessionCode}의 모든 참가자 순서 업데이트 완료. 소요 시간: ${timeTaken} ms")
     }
-    
-    private fun checkAndCleanupEmptySession(sessionCode: String, sessionEmitters: ConcurrentHashMap<Long, SseEmitter>) {
-        if (sessionEmitters.isEmpty()) {
-            emitters.remove(sessionCode)
-            log.info("빈 세션 {} 정리 완료", sessionCode)
-        }
-    }
-    
-    private fun sendQueuePosition(sessionCode: String, sseEvent: SseEvent, order: Int, participant: SessionParticipant) {
-        emitters[sessionCode]
-                ?.get(participant.participantId)
-                ?.let { emitter ->
-                    sendSseEvent(
-                        emitter, sseEvent, mapOf(
-                            "order" to order,
-                            "fixed" to participant.fixedPick
-                        )
-                    )
-                }
-    }
-    
-    private fun sendSseEvent(emitter: SseEmitter, event: SseEvent, data: Any) =
-            try {
-                emitEvent(emitter, event, data)
-            } catch (error: Exception) {
-                handleEmitterError(emitter, event, error)
-            }
-    
-    private fun handleEmitterError(emitter: SseEmitter, event: SseEvent, error: Exception) =
-            try {
-                emitter.completeWithError(error)
-            } catch (completionError: Exception) {
-                log.error(
-                    "Emitter 종료 실패 - 이벤트: {}, 에러: {}",
-                    event.name,
-                    completionError.message,
-                    completionError
-                )
-            }
     
     private fun initializeEmitter(sessionCode: String, participantId: Long): SseEmitter {
         cleanupExistingConnection(sessionCode, participantId)
         val emitter = createSseEmitter(
             timeout = sseTimeout,
-            onCompletion = { disconnectParticipant(sessionCode, participantId) },
-            onTimeout = { disconnectParticipant(sessionCode, participantId) },
-            onError = { error -> disconnectParticipant(sessionCode, participantId) }
+            onCompletion = { handleDisconnection(sessionCode, participantId) },
+            onTimeout = { handleDisconnection(sessionCode, participantId) },
+            onError = { error -> handleDisconnection(sessionCode, participantId) }
         )
         registerEmitter(sessionCode, participantId, emitter)
         return emitter
     }
     
     private fun cleanupExistingConnection(sessionCode: String, participantId: Long) {
-        participantSessionMap[participantId]
-                ?.let { existingSessionCode ->
-                    if (existingSessionCode != sessionCode) {
-                        log.debug("참가자 {}의 이전 세션 {} 연결 정리", participantId, existingSessionCode)
-                        disconnectParticipant(existingSessionCode, participantId)
-                    }
-                }
+        participantSessionMap[participantId]?.let { existingSessionCode ->
+            if (existingSessionCode != sessionCode) {
+                disconnectParticipant(existingSessionCode, participantId)
+            }
+        }
     }
     
-    private fun registerEmitter(sessionCode: String, participantId: Long, emitter: SseEmitter) {
+    private fun registerEmitter(
+            sessionCode: String,
+            participantId: Long,
+            emitter: SseEmitter
+    ) {
         val sessionEmitters = emitters.computeIfAbsent(sessionCode) { ConcurrentHashMap() }
         sessionEmitters[participantId] = emitter
         participantSessionMap[participantId] = sessionCode
     }
+    
+    private fun handleDisconnection(sessionCode: String, participantId: Long) {
+        disconnectParticipant(sessionCode, participantId)
+        eventPublisher.publishEvent(ParticipantDisconnectionEvent(sessionCode, participantId))
+    }
+    
 }
