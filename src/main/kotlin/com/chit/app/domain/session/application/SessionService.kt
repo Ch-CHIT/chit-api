@@ -58,7 +58,7 @@ class SessionService(
     }
     
     @Transactional
-    fun updateContentsSession(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
+    suspend fun updateContentsSession(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
         val session = getOpenContentsSessionByStreamerId(streamerId)
         session.updateGameSettings(gameParticipationCode, maxGroupParticipants)
         
@@ -69,7 +69,7 @@ class SessionService(
     }
     
     @Transactional
-    fun removeParticipantFromSession(streamerId: Long, participantId: Long?) {
+    suspend fun removeParticipantFromSession(streamerId: Long, participantId: Long?) {
         require(participantId != null) { "유효하지 않은 참여자 정보입니다." }
         
         val session = getOpenContentsSessionByStreamerId(streamerId)
@@ -78,28 +78,42 @@ class SessionService(
         session.removeParticipant()
         participant.updateStatus(status = ParticipationStatus.REJECTED)
         
-        sessionSseService.disconnectParticipant(session.sessionCode, participantId)
+        val sessionCode = session.sessionCode
+        sessionSseService.disconnectParticipant(sessionCode, participantId)
         streamerSseService.publishEvent(streamerId, SseEvent.PARTICIPANT_REMOVED, session.toResponseDto())
-        sessionSseService.reorderSessionParticipants(session.sessionCode, SseEvent.PARTICIPANT_REMOVED)
+        sessionSseService.reorderSessionParticipants(sessionCode, SseEvent.PARTICIPANT_REMOVED)
     }
     
     @Transactional
-    fun closeContentsSession(streamerId: Long) = getOpenContentsSessionByStreamerId(streamerId)
+    suspend fun closeContentsSession(streamerId: Long) = getOpenContentsSessionByStreamerId(streamerId)
             .apply {
                 close()
                 streamerSseService.unsubscribe(streamerId)
-                sessionSseService.removeAllParticipants(this.sessionCode)
+                sessionSseService.disconnectAllParticipants(this.sessionCode)
                 log.info("세션 종료 처리 완료: 스트리머 ID = $streamerId, 참여 코드 = ${this.sessionCode}")
             }
     
     @Transactional
-    fun togglePick(streamerId: Long, participantId: Long) {
+    suspend fun togglePick(streamerId: Long, participantId: Long) {
         val session = getOpenContentsSessionByStreamerId(streamerId)
         sessionRepository.findParticipantBySessionIdAndParticipantId(session.id!!, participantId)
                 ?.apply { toggleFixedPick() }
                 ?: throw IllegalArgumentException("참여자 ID ${participantId}가 세션 ID ${session.id}에 존재하지 않습니다.")
         
         sessionSseService.reorderSessionParticipants(session.sessionCode, SseEvent.PARTICIPANT_UPDATED)
+    }
+    
+    @Transactional
+    fun rejectParticipant(sessionCode: String, participantId: Long) {
+        sessionRepository.findParticipantBy(participantId, sessionCode)
+                ?.let { participant ->
+                    participant.updateStatus(status = ParticipationStatus.REJECTED)
+                    participant.contentsSession.removeParticipant()
+                    log.info("참가자 {}의 상태를 REJECTED로 업데이트하고 세션 {}에서 제거했습니다.", participantId, sessionCode)
+                }
+                ?: run {
+                    log.warn("세션 {}에서 참가자 {}을(를) 찾을 수 없습니다.", sessionCode, participantId)
+                }
     }
     
     private fun getOpenContentsSessionByStreamerId(streamerId: Long): ContentsSession {
