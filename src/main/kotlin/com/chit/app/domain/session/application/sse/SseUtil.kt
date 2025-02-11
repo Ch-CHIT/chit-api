@@ -2,10 +2,11 @@ package com.chit.app.domain.session.application.sse
 
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.global.delegate.logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.IOException
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutorService
 
 object SseUtil {
     
@@ -40,22 +41,20 @@ object SseUtil {
             onTimeout: () -> Unit,
             onError: (Throwable) -> Unit
     ): SseEmitter {
-        return SseEmitter(timeout)
-                .apply {
-                    onCompletion { onCompletion() }
-                    onTimeout { onTimeout() }
-                    onError { throwable -> onError(throwable) }
-                }
+        return SseEmitter(timeout).apply {
+            onCompletion { onCompletion }
+            onTimeout { onTimeout }
+            onError { throwable -> onError(throwable) }
+        }
     }
     
-    fun completeAllEmitters(
+    suspend fun completeAllEmitters(
             emitters: Collection<SseEmitter>,
-            executor: ExecutorService,
             onSuccess: () -> Unit = {},
             onFailure: (Throwable) -> Unit = {}
-    ) {
-        val futures = emitters.map { emitter ->
-            CompletableFuture.runAsync({
+    ) = coroutineScope {
+        emitters.map { emitter ->
+            launch(Dispatchers.IO) {
                 runCatching {
                     emitter.complete()
                 }.onSuccess {
@@ -63,9 +62,8 @@ object SseUtil {
                 }.onFailure { error ->
                     onFailure(error)
                 }
-            }, executor)
+            }
         }
-        CompletableFuture.allOf(*futures.toTypedArray()).join()
     }
     
 }
