@@ -1,6 +1,6 @@
 package com.chit.app.domain.session.infrastructure
 
-import com.chit.app.domain.session.domain.model.ContentsSession
+import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
