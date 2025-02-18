@@ -1,8 +1,8 @@
 package com.chit.app.domain.session.presentation
 
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
-import com.chit.app.domain.session.application.sse.SessionSseService
-import com.chit.app.domain.session.application.sse.StreamerSseService
+import com.chit.app.domain.session.application.service.SessionSseService
+import com.chit.app.domain.session.application.service.StreamerSseService
 import io.swagger.v3.oas.annotations.Parameter
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,11 +23,11 @@ class SseController(
             streamerSseService.subscribe(streamerId)
     
     @GetMapping("/viewer/subscribe", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    suspend fun subscribe(
+    fun subscribe(
             @Parameter(hidden = true) @CurrentMemberId viewerId: Long,
-            @RequestParam sessionParticipationCode: String,
+            @RequestParam sessionCode: String,
             @RequestParam gameNickname: String
     ): SseEmitter =
-            sessionSseService.subscribe(viewerId, sessionParticipationCode, gameNickname)
+            sessionSseService.subscribe(viewerId, sessionCode, gameNickname)
     
 }
