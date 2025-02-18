@@ -5,6 +5,7 @@ spring:
       - oauth
       - jwt
       - api
+      - log
 
   threads:
     virtual:
@@ -17,6 +18,9 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        javax:
+          cache:
+            uri: classpath:ehcache.xml
         jdbc:
           batch_size: 20
         order_updates: true
@@ -26,10 +30,6 @@ spring:
 
   flyway:
     enabled: false
-
-  cache:
-    jcache:
-      config: classpath:ehcache.xml
 
 springdoc:
   swagger-ui:
