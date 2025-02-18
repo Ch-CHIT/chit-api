@@ -1,21 +1,15 @@
 package com.chit.app.domain.session.domain.model.status
 
-enum class ParticipationStatus {
-    PENDING {
-        override fun canTransitionTo(status: ParticipationStatus): Boolean {
-            return status == APPROVED || status == REJECTED
-        }
-    },
-    APPROVED {
-        override fun canTransitionTo(status: ParticipationStatus): Boolean {
-            return status == PENDING || status == REJECTED
-        }
-    },
-    REJECTED {
-        override fun canTransitionTo(status: ParticipationStatus): Boolean {
-            return false
-        }
-    };
+enum class ParticipationStatus(val order: Int) {
+    // 게임 참여 중 상태가 가장 우선
+    APPROVED(1),
     
-    abstract fun canTransitionTo(status: ParticipationStatus): Boolean
+    // 참가 대기 상태가 그 다음
+    PENDING(2),
+    
+    // 게임을 나간 상태
+    LEFT(3),
+    
+    // 추방 상태
+    REJECTED(4);
 }
