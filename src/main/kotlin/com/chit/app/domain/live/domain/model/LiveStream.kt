@@ -36,13 +36,13 @@ class LiveStream private constructor(
         private var _liveStatus: LiveStatus,
         
         @Column(name = "category_type")
-        private var _categoryType: String,
+        private var _categoryType: String? = null,
         
         @Column(name = "live_category")
-        private var _liveCategory: String,
+        private var _liveCategory: String? = null,
         
         @Column(name = "live_category_value")
-        private var _liveCategoryValue: String,
+        private var _liveCategoryValue: String? = null,
         
         @Column(name = "open_date")
         private var _openDate: LocalDateTime,
@@ -67,9 +67,9 @@ class LiveStream private constructor(
     fun update(
             liveTitle: String,
             liveStatus: LiveStatus,
-            categoryType: String,
-            liveCategory: String,
-            liveCategoryValue: String,
+            categoryType: String?,
+            liveCategory: String?,
+            liveCategoryValue: String?,
             openDate: LocalDateTime,
             closeDate: LocalDateTime?
     ) {
@@ -89,9 +89,9 @@ class LiveStream private constructor(
                 channelId: String?,
                 liveTitle: String,
                 liveStatus: LiveStatus,
-                categoryType: String,
-                liveCategory: String,
-                liveCategoryValue: String,
+                categoryType: String?,
+                liveCategory: String?,
+                liveCategoryValue: String?,
                 openDate: LocalDateTime,
                 closeDate: LocalDateTime?
         ): LiveStream {

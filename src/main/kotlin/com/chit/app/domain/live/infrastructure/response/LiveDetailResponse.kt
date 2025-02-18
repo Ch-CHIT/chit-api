@@ -15,9 +15,9 @@ data class LiveDetailResponse(
             val liveId: Long,
             val liveTitle: String,
             val status: LiveStatus,
-            val categoryType: String,
-            val liveCategory: String,
-            val liveCategoryValue: String,
+            val categoryType: String?,
+            val liveCategory: String?,
+            val liveCategoryValue: String?,
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss") val openDate: LocalDateTime,
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss") val closeDate: LocalDateTime?
     )
