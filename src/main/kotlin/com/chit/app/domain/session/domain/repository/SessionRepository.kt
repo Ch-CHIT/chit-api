@@ -1,18 +1,17 @@
 package com.chit.app.domain.session.domain.repository
 
 import com.chit.app.domain.member.domain.model.QMember
-import com.chit.app.domain.session.application.dto.Participant
-import com.chit.app.domain.session.domain.model.ContentsSession
-import com.chit.app.domain.session.domain.model.QContentsSession
-import com.chit.app.domain.session.domain.model.QSessionParticipant
-import com.chit.app.domain.session.domain.model.SessionParticipant
+import com.chit.app.domain.session.domain.model.Participant
+import com.chit.app.domain.session.domain.model.entity.ContentsSession
+import com.chit.app.domain.session.domain.model.entity.QContentsSession
+import com.chit.app.domain.session.domain.model.entity.QSessionParticipant
+import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.domain.session.domain.model.status.SessionStatus
 import com.chit.app.domain.session.infrastructure.JpaContentsSessionRepository
 import com.chit.app.domain.session.infrastructure.JpaSessionParticipantRepository
 import com.chit.app.global.handler.EntitySaveExceptionHandler
 import com.querydsl.core.BooleanBuilder
-import com.querydsl.core.NonUniqueResultException
 import com.querydsl.core.types.ExpressionUtils.count
 import com.querydsl.core.types.Projections
 import com.querydsl.jpa.impl.JPAQueryFactory
@@ -54,7 +53,8 @@ class SessionRepository(
                 sessionCode?.let { cs.sessionCode.eq(it) },
                 streamerId?.let { cs.streamerId.eq(it) },
                 cs._status.eq(SessionStatus.OPEN)
-            ).fetchOne()
+            )
+            .fetchOne()
     
     fun findPagedParticipantsBySessionCode(sessionCode: String, pageable: Pageable): Page<Participant> {
         val condition = BooleanBuilder()
@@ -68,7 +68,7 @@ class SessionRepository(
                 .select(
                     Projections.constructor(
                         Participant::class.java,
-                        sp.participantId,
+                        sp.viewerId,
                         m.channelName,
                         sp._gameNickname,
                         sp._fixedPick
@@ -76,7 +76,7 @@ class SessionRepository(
                 )
                 .from(sp)
                 .join(sp.contentsSession, cs)
-                .join(m).on(m.id.eq(sp.participantId))
+                .join(m).on(m.id.eq(sp.viewerId))
                 .where(condition)
                 .orderBy(
                     sp._fixedPick.desc(),
@@ -101,43 +101,48 @@ class SessionRepository(
     fun addParticipant(sessionParticipant: SessionParticipant) =
             participantRepository.save(sessionParticipant).contentsSession.addParticipant()
     
-    fun findParticipantBy(participantId: Long, sessionCode: String): SessionParticipant? {
-        return try {
-            query
-                    .select(sp)
-                    .from(sp)
-                    .join(sp.contentsSession, cs).fetchJoin()
-                    .where(
-                        sp.id.eq(participantId),
-                        cs.sessionCode.eq(sessionCode),
-                        cs._status.eq(SessionStatus.OPEN)
-                    )
-                    .fetchOne()
-        } catch (_: NonUniqueResultException) {
-            null
-        }
-    }
-    
-    fun findParticipantBySessionIdAndParticipantId(sessionId: Long, participantId: Long): SessionParticipant? = query
-            .selectFrom(sp)
+    fun findParticipantBy(
+            viewerId: Long,
+            sessionCode: String? = null,
+            sessionId: Long? = null
+    ): SessionParticipant? = query
+            .select(sp)
+            .from(sp)
+            .join(sp.contentsSession, cs).fetchJoin()
             .where(
-                sp.contentsSession.id.eq(sessionId),
-                sp.participantId.eq(participantId)
+                sessionCode?.let { cs.sessionCode.eq(it) },
+                sessionId?.let { cs.id.eq(it) },
+                cs._status.eq(SessionStatus.OPEN),
+                sp.viewerId.eq(viewerId),
+                sp._status.`in`(ParticipationStatus.PENDING, ParticipationStatus.APPROVED),
             )
             .fetchOne()
     
-    fun findSortedParticipantsBySessionCode(sessionCode: String): List<SessionParticipant> = query
-            .select(sp)
-            .join(sp.contentsSession, cs).fetchJoin()
+    fun findGameParticipationCodeBy(sessionCode: String, viewerId: Long): String? = query
+            .select(cs._gameParticipationCode)
+            .from(sp)
+            .join(sp.contentsSession, cs)
             .where(
                 cs.sessionCode.eq(sessionCode),
-                sp._status.ne(ParticipationStatus.REJECTED)
+                sp.viewerId.eq(viewerId)
             )
-            .orderBy(
-                sp._fixedPick.desc(),
-                sp._status.asc(),
-                sp.id.asc()
+            .fetchOne()
+    
+    fun setAllParticipantsToLeft(sessionCode: String) = query
+            .update(sp)
+            .set(sp._status, ParticipationStatus.LEFT)
+            .where(sp.contentsSession.sessionCode.eq(sessionCode))
+            .execute()
+    
+    fun existsParticipantInSession(sessionId: Long, viewerId: Long): Boolean = query
+            .selectOne()
+            .from(sp)
+            .join(sp.contentsSession, cs)
+            .where(
+                cs.id.eq(sessionId),
+                sp.viewerId.eq(viewerId),
+                sp._status.`in`(ParticipationStatus.PENDING, ParticipationStatus.APPROVED)
             )
-            .fetch()
+            .fetchFirst() != null
     
 }
