@@ -8,3 +8,4 @@ typealias Void = ResponseEntity<SuccessResponse<Unit>>
 typealias Message = ResponseEntity<SuccessResponse<String>>
 typealias NewContentsSession = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
 typealias DetailContentsSession = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
+typealias GameCode = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
