@@ -1,4 +1,4 @@
-package com.chit.app.domain.session.domain.model
+package com.chit.app.domain.session.domain.model.entity
 
 import com.chit.app.domain.session.domain.model.status.SessionStatus
 import com.chit.app.global.entity.BaseEntity
@@ -79,10 +79,9 @@ class ContentsSession private constructor(
                 this._currentParticipants--
             }
     
-    fun close(): ContentsSession =
-            apply {
-                this._status = SessionStatus.CLOSE
-            }
+    fun close() {
+        this._status = SessionStatus.CLOSE
+    }
     
     private fun validateSessionIsOpen() =
             check(_status == SessionStatus.OPEN) { "세션이 열려 있지 않습니다. 세션 ID: $id" }

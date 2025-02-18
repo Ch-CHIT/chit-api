@@ -1,4 +1,4 @@
-package com.chit.app.domain.session.domain.model
+package com.chit.app.domain.session.domain.model.entity
 
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.global.entity.BaseEntity
@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 @Entity
 @Table(
     name = "session_participant",
-    indexes = [Index(name = "idx_participant_session_unique", columnList = "participant_id, contents_session_id", unique = true)]
+    indexes = [Index(name = "idx_participant_session", columnList = "viewer_id, contents_session_id")]
 )
 class SessionParticipant private constructor(
         
@@ -20,8 +20,8 @@ class SessionParticipant private constructor(
         @JoinColumn(name = "contents_session_id", nullable = false)
         val contentsSession: ContentsSession,
         
-        @Column(name = "participant_id", nullable = false)
-        val participantId: Long,
+        @Column(name = "viewer_id", nullable = false)
+        val viewerId: Long,
         
         @Column(name = "game_nickname", nullable = false)
         private var _gameNickname: String,
@@ -41,10 +41,11 @@ class SessionParticipant private constructor(
     val fixedPick: Boolean
         get() = _fixedPick
     
-    fun updateStatus(status: ParticipationStatus) {
-        require(_status.canTransitionTo(status)) { "현재 상태에서 $status 로 전환할 수 없습니다." }
-        _status = status
-    }
+    var status: ParticipationStatus
+        get() = _status
+        set(value) {
+            _status = value
+        }
     
     fun toggleFixedPick() {
         _fixedPick = !_fixedPick
@@ -52,9 +53,9 @@ class SessionParticipant private constructor(
     }
     
     companion object {
-        fun create(participantId: Long, gameNickname: String, contentsSession: ContentsSession): SessionParticipant {
+        fun create(viewerId: Long, gameNickname: String, contentsSession: ContentsSession): SessionParticipant {
             return SessionParticipant(
-                participantId = participantId,
+                viewerId = viewerId,
                 contentsSession = contentsSession,
                 _gameNickname = gameNickname
             )
