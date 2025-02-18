@@ -2,6 +2,16 @@
   xmlns="http://www.ehcache.org/v3"
   xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd">
 
+  <cache-template name="hibernateTemplate">
+    <expiry>
+      <ttl>300</ttl>
+    </expiry>
+    <resources>
+      <heap>1000</heap>
+      <offheap unit="MB">10</offheap>
+    </resources>
+  </cache-template>
+
   <cache alias="refreshTokenCache">
     <key-type>java.lang.Long</key-type>
     <value-type>com.chit.app.domain.auth.domain.model.RefreshToken</value-type>
@@ -13,5 +23,7 @@
       <offheap unit="MB">10</offheap>
     </resources>
   </cache>
+
+  <cache alias="memberCache" uses-template="hibernateTemplate"/>
 
 </config>
