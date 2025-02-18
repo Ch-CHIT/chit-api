@@ -1,4 +1,4 @@
-package com.chit.app.domain.session.application.dto
+package com.chit.app.domain.session.domain.model
 
 data class Participant(
         val memberId: Long,
