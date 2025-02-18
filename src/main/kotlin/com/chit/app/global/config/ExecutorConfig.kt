@@ -9,17 +9,17 @@ import java.util.concurrent.Executors
 @Configuration
 class ExecutorConfig {
     
-    private val executor: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
+    private val virtualThreadExecutor: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
     
-    @Bean
-    fun virtualThreadExecutor(): ExecutorService {
-        return executor
+    @Bean(name = ["taskExecutor"])
+    fun taskExecutor(): ExecutorService {
+        return virtualThreadExecutor
     }
     
     @PreDestroy
     fun shutdownExecutor() {
-        if (!executor.isShutdown) {
-            executor.shutdown()
+        if (!virtualThreadExecutor.isShutdown) {
+            virtualThreadExecutor.shutdown()
         }
     }
     
