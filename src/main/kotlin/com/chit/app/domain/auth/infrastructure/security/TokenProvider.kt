@@ -35,7 +35,6 @@ class TokenProvider {
     @PostConstruct
     fun init() {
         key = Keys.hmacShaKeyFor(secretKey.toByteArray())
-        log.info("JWT 키가 초기화되었습니다.")
     }
     
     fun createAccessToken(memberId: Long?, channelId: String?, channelName: String?): String {
@@ -62,72 +61,72 @@ class TokenProvider {
                 .compact()
     }
     
-    fun validateToken(token: String): Boolean {
-        return runCatching {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-        }.fold(
-            onSuccess = { true },
-            onFailure = { e ->
-                when (e) {
-                    is SecurityException        -> {
-                        log.warn("잘못된 서명: {}", e.message)
-                        false
-                    }
-                    
-                    is MalformedJwtException    -> {
-                        log.warn("JWT 토큰 형식 오류: {}", e.message)
-                        false
-                    }
-                    
-                    is ExpiredJwtException      -> {
-                        log.info("만료된 JWT 토큰: {}", e.message)
-                        false
-                    }
-                    
-                    is UnsupportedJwtException  -> {
-                        log.warn("지원되지 않는 JWT 토큰: {}", e.message)
-                        false
-                    }
-                    
-                    is IllegalArgumentException -> {
-                        log.warn("잘못된 토큰 값: {}", e.message)
-                        false
-                    }
-                    
-                    else                        -> {
-                        log.error("예상치 못한 토큰 검증 오류 발생", e)
-                        throw e
-                    }
-                }
-            }
-        )
-    }
-    
     fun getMemberIdFromToken(token: String): Long {
         return getClaims(token).subject.toLong()
     }
     
+    fun validateToken(token: String): Boolean {
+        return try {
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+            true
+        } catch (e: Exception) {
+            when (e) {
+                is SecurityException        -> log.warn("잘못된 서명: {}", e.message)
+                is MalformedJwtException    -> log.warn("JWT 토큰 형식 오류: {}", e.message)
+                is ExpiredJwtException      -> log.warn("만료된 JWT 토큰: {}", e.message)
+                is UnsupportedJwtException  -> log.warn("지원되지 않는 JWT 토큰: {}", e.message)
+                is IllegalArgumentException -> log.warn("잘못된 토큰 값: {}", e.message)
+                else                        -> {
+                    log.error("예상치 못한 토큰 검증 오류 발생", e)
+                    throw e
+                }
+            }
+            false
+        }
+    }
+    
     private fun getClaims(token: String): Claims {
-        return runCatching {
+        return try {
             Jwts.parserBuilder()
                     .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token)
                     .body
-        }.getOrElse { e ->
-            val errorMessage = when (e) {
-                is ExpiredJwtException      -> "만료된 토큰입니다."
-                is UnsupportedJwtException  -> "지원되지 않는 토큰입니다."
-                is MalformedJwtException    -> "형식이 올바르지 않은 토큰입니다."
-                is SecurityException        -> "잘못된 서명입니다."
-                is IllegalArgumentException -> "잘못된 토큰입니다."
-                else                        -> throw e
+        } catch (e: Exception) {
+            when (e) {
+                is ExpiredJwtException      -> {
+                    log.warn("만료된 토큰: {}", e.message)
+                    throw JwtException("만료된 토큰입니다.", e)
+                }
+                
+                is UnsupportedJwtException  -> {
+                    log.warn("지원되지 않는 토큰: {}", e.message)
+                    throw JwtException("지원되지 않는 토큰입니다.", e)
+                }
+                
+                is MalformedJwtException    -> {
+                    log.warn("JWT 토큰 형식 오류: {}", e.message)
+                    throw JwtException("형식이 올바르지 않은 토큰입니다.", e)
+                }
+                
+                is SecurityException        -> {
+                    log.warn("잘못된 서명: {}", e.message)
+                    throw JwtException("잘못된 서명입니다.", e)
+                }
+                
+                is IllegalArgumentException -> {
+                    log.warn("잘못된 토큰 값: {}", e.message)
+                    throw JwtException("잘못된 토큰입니다.", e)
+                }
+                
+                else                        -> {
+                    log.error("예상치 못한 토큰 검증 오류 발생", e)
+                    throw e
+                }
             }
-            log.warn("$errorMessage: {}", e.message)
-            throw JwtException(errorMessage, e)
         }
     }
 }
