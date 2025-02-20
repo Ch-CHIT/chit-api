@@ -60,7 +60,7 @@ class SessionRepository(
         val condition = BooleanBuilder()
                 .apply {
                     and(cs.sessionCode.eq(sessionCode))
-                    and(sp._status.ne(ParticipationStatus.REJECTED))
+                    and(sp._status.ne(ParticipationStatus.LEFT))
                 }
         
         // 콘텐츠 조회
@@ -114,7 +114,7 @@ class SessionRepository(
                 sessionId?.let { cs.id.eq(it) },
                 cs._status.eq(SessionStatus.OPEN),
                 sp.viewerId.eq(viewerId),
-                sp._status.`in`(ParticipationStatus.PENDING, ParticipationStatus.APPROVED),
+                sp._status.eq(ParticipationStatus.JOINED)
             )
             .fetchOne()
     
@@ -141,7 +141,7 @@ class SessionRepository(
             .where(
                 cs.id.eq(sessionId),
                 sp.viewerId.eq(viewerId),
-                sp._status.`in`(ParticipationStatus.PENDING, ParticipationStatus.APPROVED)
+                sp._status.eq(ParticipationStatus.JOINED)
             )
             .fetchFirst() != null
     
