@@ -28,7 +28,7 @@ class SessionParticipant private constructor(
         
         @Enumerated(EnumType.STRING)
         @Column(name = "status", nullable = false)
-        private var _status: ParticipationStatus = ParticipationStatus.PENDING,
+        private var _status: ParticipationStatus = ParticipationStatus.JOINED,
         
         @Column(name = "fixed_pick", nullable = false)
         private var _fixedPick: Boolean = false,
