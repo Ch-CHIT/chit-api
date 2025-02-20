@@ -12,7 +12,7 @@ class SchedulerConfig {
     fun taskScheduler(): TaskScheduler {
         return ThreadPoolTaskScheduler().apply {
             poolSize = 5
-            setThreadNamePrefix("scheduled-task-")
+            setThreadNamePrefix("scheduled-")
             initialize()
         }
     }
