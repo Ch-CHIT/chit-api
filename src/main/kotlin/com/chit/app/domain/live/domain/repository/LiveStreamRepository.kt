@@ -6,6 +6,9 @@ import com.chit.app.domain.live.domain.model.QLiveStream
 import com.chit.app.domain.live.infrastructure.JpaLiveStreamRepository
 import com.chit.app.global.handler.EntitySaveExceptionHandler
 import com.querydsl.jpa.impl.JPAQueryFactory
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Slice
+import org.springframework.data.domain.SliceImpl
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -21,8 +24,6 @@ class LiveStreamRepository(
                     .onFailure { EntitySaveExceptionHandler.handle(it) }
                     .getOrThrow()
     
-    fun batchUpdateLiveStreams(liveStreams: List<LiveStream>) = repository.saveAll(liveStreams)
-    
     fun findOpenLiveStreamBy(
             streamerId: Long? = null,
             channelId: String? = null,
@@ -35,9 +36,16 @@ class LiveStreamRepository(
             )
             .fetchOne()
     
-    fun findAllOpenLiveStreams(): List<LiveStream> = query
-            .selectFrom(liveStream)
-            .where(liveStream._liveStatus.eq(LiveStatus.OPEN))
-            .fetch()
+    fun findAllOpenLiveStreams(pageable: Pageable): Slice<LiveStream> {
+        val results = query
+                .selectFrom(liveStream)
+                .where(liveStream._liveStatus.eq(LiveStatus.OPEN))
+                .offset(pageable.offset)
+                .limit(pageable.pageSize + 1L)
+                .fetch()
+        val hasNext = results.size > pageable.pageSize
+        val content = if (hasNext) results.subList(0, pageable.pageSize) else results
+        return SliceImpl(content, pageable, hasNext)
+    }
     
 }
