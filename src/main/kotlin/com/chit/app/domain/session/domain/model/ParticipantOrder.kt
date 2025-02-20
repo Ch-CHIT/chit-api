@@ -4,7 +4,7 @@ import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 
 data class ParticipantOrder(
         val cycle: Int = 1,
-        val fixed: Boolean,
+        val fixed: Boolean = false,
         val status: ParticipationStatus,
         val participantId: Long,
         val viewerId: Long

@@ -16,12 +16,12 @@ class ParticipantEventListener(
     
     @EventListener
     fun handleParticipantJoin(event: ParticipantJoinEvent) {
-        CompletableFuture.runAsync({ participantService.joinParticipantToSession(event.sessionCode, event.participantId, event.gameNickname) }, taskExecutor)
+        CompletableFuture.runAsync({ participantService.joinParticipant(event.sessionCode, event.participantId, event.gameNickname) }, taskExecutor)
     }
     
     @EventListener
     fun handleParticipantDisconnection(event: ParticipantDisconnectionEvent) {
-        CompletableFuture.runAsync({ participantService.rejectParticipant(event.sessionCode, event.viewerId) }, taskExecutor)
+        CompletableFuture.runAsync({ participantService.removeParticipant(event.sessionCode, event.viewerId) }, taskExecutor)
     }
     
 }
