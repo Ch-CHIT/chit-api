@@ -27,7 +27,6 @@ class ChzzkLiveApiClient(
                     .uri("$chzzkLiveDetailApiUrl/$channelId/live-detail")
                     .retrieve()
                     .body(LiveDetailResponse::class.java)?.content
-                    .also { log.debug("채널 ID={}에 대한 라이브 상세 정보를 가져왔습니다.", channelId) }
         } catch (e: HttpClientErrorException) {
             log.error("잘못된 API 요청 경로: channelId=$channelId", e)
             throw IllegalArgumentException("잘못된 API 요청 경로입니다. 관리자에게 문의해 주세요.")
