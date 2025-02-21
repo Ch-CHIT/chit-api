@@ -31,6 +31,11 @@ spring:
   flyway:
     enabled: false
 
+  datasource:
+    hikari:
+      maximum-pool-size: 25
+      leak-detection-threshold: 5000
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
