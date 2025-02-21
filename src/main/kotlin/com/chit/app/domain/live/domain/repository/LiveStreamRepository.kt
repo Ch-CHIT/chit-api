@@ -4,7 +4,7 @@ import com.chit.app.domain.live.domain.model.LiveStatus
 import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.model.QLiveStream
 import com.chit.app.domain.live.infrastructure.JpaLiveStreamRepository
-import com.chit.app.global.handler.EntitySaveExceptionHandler
+import com.chit.app.global.common.handler.EntitySaveExceptionHandler
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice

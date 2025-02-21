@@ -6,8 +6,8 @@ import com.chit.app.domain.auth.presentation.dto.LoginRequestDto
 import com.chit.app.domain.live.application.LiveStreamService
 import com.chit.app.global.delegate.Message
 import com.chit.app.global.delegate.Void
-import com.chit.app.global.response.SuccessResponse.Companion.success
-import com.chit.app.global.response.SuccessResponse.Companion.successWithData
+import com.chit.app.global.common.response.SuccessResponse.Companion.success
+import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
 import com.chit.app.global.util.CookieInfo
 import com.chit.app.global.util.CookieManager
 import io.swagger.v3.oas.annotations.Parameter

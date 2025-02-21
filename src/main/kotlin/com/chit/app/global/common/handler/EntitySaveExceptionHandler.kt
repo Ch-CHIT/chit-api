@@ -1,6 +1,6 @@
-package com.chit.app.global.handler
+package com.chit.app.global.common.handler
 
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.transaction.TransactionSystemException

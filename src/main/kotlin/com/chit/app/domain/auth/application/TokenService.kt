@@ -1,7 +1,7 @@
 package com.chit.app.domain.auth.application
 
 import com.chit.app.domain.auth.domain.model.RefreshToken
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable

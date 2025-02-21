@@ -6,7 +6,7 @@ import com.chit.app.domain.session.domain.model.event.ParticipantDisconnectionEv
 import com.chit.app.domain.session.domain.model.event.ParticipantJoinEvent
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
 import com.chit.app.global.annotation.LogExecutionTime
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter

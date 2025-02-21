@@ -1,4 +1,4 @@
-package com.chit.app.global.delegate
+package com.chit.app.global.common.logging
 
 import mu.KotlinLogging
 

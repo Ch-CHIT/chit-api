@@ -2,7 +2,7 @@ package com.chit.app.domain.auth.infrastructure.security.filter
 
 import com.chit.app.domain.auth.infrastructure.security.TokenProvider
 import com.chit.app.domain.auth.infrastructure.properties.JwtFilterProperties
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException

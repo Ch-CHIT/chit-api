@@ -1,7 +1,7 @@
 package com.chit.app.domain.live.infrastructure
 
 import com.chit.app.domain.live.infrastructure.response.LiveDetailResponse
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component

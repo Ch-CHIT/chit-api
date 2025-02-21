@@ -5,7 +5,7 @@ import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.domain.live.infrastructure.ChzzkLiveApiClient
 import com.chit.app.domain.live.infrastructure.response.LiveDetailResponse
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime.now

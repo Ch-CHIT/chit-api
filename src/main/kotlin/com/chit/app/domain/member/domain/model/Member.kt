@@ -1,6 +1,6 @@
 package com.chit.app.domain.member.domain.model
 
-import com.chit.app.global.entity.BaseEntity
+import com.chit.app.global.common.entity.BaseEntity
 import jakarta.persistence.Cacheable
 import jakarta.persistence.Column
 import jakarta.persistence.Entity

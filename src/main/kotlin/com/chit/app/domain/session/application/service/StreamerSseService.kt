@@ -3,7 +3,7 @@ package com.chit.app.domain.session.application.service
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.domain.session.application.service.util.SseUtil
 import com.chit.app.global.annotation.LogExecutionTime
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.util.concurrent.CompletableFuture.allOf

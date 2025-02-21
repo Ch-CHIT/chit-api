@@ -9,8 +9,8 @@ import com.chit.app.global.delegate.DetailContentsSession
 import com.chit.app.global.delegate.GameCode
 import com.chit.app.global.delegate.NewContentsSession
 import com.chit.app.global.delegate.Void
-import com.chit.app.global.response.SuccessResponse.Companion.success
-import com.chit.app.global.response.SuccessResponse.Companion.successWithData
+import com.chit.app.global.common.response.SuccessResponse.Companion.success
+import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
 import io.swagger.v3.oas.annotations.Parameter
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault

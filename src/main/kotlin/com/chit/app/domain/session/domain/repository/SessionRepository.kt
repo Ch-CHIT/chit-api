@@ -10,7 +10,7 @@ import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.domain.session.domain.model.status.SessionStatus
 import com.chit.app.domain.session.infrastructure.JpaContentsSessionRepository
 import com.chit.app.domain.session.infrastructure.JpaSessionParticipantRepository
-import com.chit.app.global.handler.EntitySaveExceptionHandler
+import com.chit.app.global.common.handler.EntitySaveExceptionHandler
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.core.types.ExpressionUtils.count
 import com.querydsl.core.types.Projections

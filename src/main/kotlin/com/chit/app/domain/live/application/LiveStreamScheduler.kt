@@ -2,7 +2,7 @@ package com.chit.app.domain.live.application
 
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.global.annotation.LogExecutionTime
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component

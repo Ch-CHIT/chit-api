@@ -1,10 +1,10 @@
-package com.chit.app.global.handler
+package com.chit.app.global.common.handler
 
-import com.chit.app.global.delegate.logger
-import com.chit.app.global.response.ErrorResponse
-import com.chit.app.global.response.ErrorResponse.Companion.failWithErrors
-import com.chit.app.global.response.ErrorResponse.Companion.failWithMessage
-import com.chit.app.global.response.ErrorResponse.Companion.internalErrorWithMessage
+import com.chit.app.global.common.logging.logger
+import com.chit.app.global.common.response.ErrorResponse
+import com.chit.app.global.common.response.ErrorResponse.Companion.failWithErrors
+import com.chit.app.global.common.response.ErrorResponse.Companion.failWithMessage
+import com.chit.app.global.common.response.ErrorResponse.Companion.internalErrorWithMessage
 import io.jsonwebtoken.JwtException
 import jakarta.validation.ConstraintViolationException
 import org.springframework.dao.InvalidDataAccessApiUsageException

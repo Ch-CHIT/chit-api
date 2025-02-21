@@ -1,6 +1,6 @@
 package com.chit.app.domain.auth.infrastructure.security
 
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse

@@ -1,6 +1,6 @@
 package com.chit.app.domain.auth.infrastructure.security
 
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.JwtException

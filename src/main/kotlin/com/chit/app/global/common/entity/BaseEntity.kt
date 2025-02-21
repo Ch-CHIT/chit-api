@@ -1,4 +1,4 @@
-package com.chit.app.global.entity
+package com.chit.app.global.common.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.EntityListeners

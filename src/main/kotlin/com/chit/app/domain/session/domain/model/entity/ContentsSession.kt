@@ -1,7 +1,7 @@
 package com.chit.app.domain.session.domain.model.entity
 
 import com.chit.app.domain.session.domain.model.status.SessionStatus
-import com.chit.app.global.entity.BaseEntity
+import com.chit.app.global.common.entity.BaseEntity
 import com.chit.app.global.util.NanoIdUtil
 import jakarta.persistence.*
 

@@ -5,7 +5,7 @@ import com.chit.app.domain.auth.infrastructure.client.ChzzkAuthApiClient
 import com.chit.app.domain.auth.infrastructure.security.TokenProvider
 import com.chit.app.domain.member.domain.model.Member
 import com.chit.app.domain.member.domain.repository.MemberRepository
-import com.chit.app.global.delegate.logger
+import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

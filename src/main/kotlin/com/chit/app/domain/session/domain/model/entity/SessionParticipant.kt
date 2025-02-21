@@ -1,7 +1,7 @@
 package com.chit.app.domain.session.domain.model.entity
 
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
-import com.chit.app.global.entity.BaseEntity
+import com.chit.app.global.common.entity.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 

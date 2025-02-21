@@ -1,6 +1,6 @@
 package com.chit.app.domain.live.domain.model
 
-import com.chit.app.global.entity.BaseEntity
+import com.chit.app.global.common.entity.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 

@@ -9,13 +9,12 @@ import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.event.ParticipantDisconnectionEvent
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
-import com.chit.app.global.delegate.logger
-import com.chit.app.global.response.SuccessResponse.PagedResponse
+import com.chit.app.global.common.logging.logger
+import com.chit.app.global.common.response.SuccessResponse.PagedResponse
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletableFuture.runAsync
 import java.util.concurrent.ExecutorService
 

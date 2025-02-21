@@ -2,7 +2,7 @@ package com.chit.app.domain.member.domain.repository
 
 import com.chit.app.domain.member.domain.model.Member
 import com.chit.app.domain.member.infrastructure.MemberJpaRepository
-import com.chit.app.global.handler.EntitySaveExceptionHandler
+import com.chit.app.global.common.handler.EntitySaveExceptionHandler
 import org.springframework.stereotype.Repository
 
 @Repository
