@@ -47,7 +47,7 @@ class SessionSseService(
         val participantEmitters = emitters[sessionCode] ?: return
         if (participantEmitters.isEmpty()) return
         
-        val sortedParticipants = ParticipantOrderManager.getSortedParticipants(sessionCode)
+        val sortedParticipants = ParticipantOrderManager.getParticipantsSorted(sessionCode)
         val futures = sortedParticipants.mapIndexed { index, participantOrder ->
             participantEmitters[participantOrder.viewerId]?.let { emitter ->
                 runAsync({

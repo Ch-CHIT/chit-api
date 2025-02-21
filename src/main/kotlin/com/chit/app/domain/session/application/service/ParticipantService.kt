@@ -54,7 +54,7 @@ class ParticipantService(
                 ?.let { participant -> participant.contentsSession.apply { removeParticipant() } }
                 ?: return
         
-        ParticipantOrderManager.removeParticipant(sessionCode, viewerId)
+        ParticipantOrderManager.removeParticipantByViewerId(sessionCode, viewerId)
         emitStreamerEvent(session, SseEvent.STREAMER_PARTICIPANT_REMOVED)
         reorderParticipants(sessionCode)
     }

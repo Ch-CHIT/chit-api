@@ -8,31 +8,42 @@ object ParticipantOrderManager {
     
     private val sessionQueues: ConcurrentHashMap<String, ConcurrentSkipListSet<ParticipantOrder>> = ConcurrentHashMap()
     
-    fun addParticipant(sessionCode: String, participantOrder: ParticipantOrder) {
-        val queue = sessionQueues.computeIfAbsent(sessionCode) { ConcurrentSkipListSet() }
-        queue.add(participantOrder)
-    }
-    
-    fun removeParticipant(sessionCode: String, viewerId: Long): Boolean {
-        return sessionQueues[sessionCode]?.removeIf { it.viewerId == viewerId } == true
-    }
-    
-    fun updateParticipant(sessionCode: String, participantOrder: ParticipantOrder) {
-        sessionQueues.computeIfPresent(sessionCode) { _, queue ->
-            queue.removeIf { it.viewerId == participantOrder.viewerId }
-            queue.add(participantOrder)
-            queue
-        } ?: run {
-            val newQueue = ConcurrentSkipListSet<ParticipantOrder>()
-            newQueue.add(participantOrder)
-            sessionQueues.putIfAbsent(sessionCode, newQueue)
-        }
-    }
-    
-    fun getSortedParticipants(sessionCode: String): List<ParticipantOrder> {
+    fun getParticipantsSorted(sessionCode: String): List<ParticipantOrder> {
         return sessionQueues[sessionCode]
                 ?.let { queue -> synchronized(queue) { queue.toList() } }
                 ?: emptyList()
+    }
+    
+    fun addParticipant(sessionCode: String, participantOrder: ParticipantOrder) {
+        val queue = sessionQueues.computeIfAbsent(sessionCode) { ConcurrentSkipListSet() }
+        synchronized(queue) {
+            queue.add(participantOrder)
+        }
+    }
+    
+    fun removeParticipantByViewerId(sessionCode: String, viewerId: Long): Boolean {
+        val queue = sessionQueues[sessionCode] ?: return false
+        return synchronized(queue) {
+            queue.removeIf { it.viewerId == viewerId }
+        }
+    }
+    
+    fun moveFirstNParticipantsToNextCycle(sessionCode: String, count: Int) {
+        val queue = sessionQueues[sessionCode] ?: return
+        synchronized(queue) {
+            val snapshot = queue.toList()
+            snapshot.take(count).forEach { participant ->
+                updateParticipant(sessionCode, participant.copy(cycle = participant.cycle + 1))
+            }
+        }
+    }
+    
+    fun updateParticipant(sessionCode: String, participantOrder: ParticipantOrder) {
+        val queue = sessionQueues.computeIfAbsent(sessionCode) { ConcurrentSkipListSet() }
+        synchronized(queue) {
+            queue.removeIf { it.viewerId == participantOrder.viewerId }
+            queue.add(participantOrder)
+        }
     }
     
     fun removeSession(sessionCode: String) {
