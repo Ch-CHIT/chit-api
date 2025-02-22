@@ -40,16 +40,18 @@ class StreamerSseService(
         return emitter
     }
     
-    fun emitStreamerEvent(streamerId: Long?, event: SseEvent, data: Any) {
+    fun emitStreamerEvent(streamerId: Long?, data: Any, event: SseEvent) {
         emitters[streamerId]?.let { emitter ->
             runAsync({
-                runCatching {
+                try {
                     SseUtil.emitEvent(emitter, event, data)
-                }.onSuccess {
-                    log.debug("스트리머 ID: {}에게 이벤트 '{}'를 성공적으로 전송했습니다.\n 데이터: {}", streamerId, event.name, data)
-                }.onFailure { error ->
-                    unsubscribe(streamerId)
-                    log.error("스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}", streamerId, error.message ?: "알 수 없는 오류")
+                } catch (error: Exception) {
+                    log.error("스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}. 재시도합니다.", streamerId, error.message ?: "알 수 없는 오류")
+                    try {
+                        SseUtil.emitEvent(emitter, event, data)
+                    } catch (retryError: Exception) {
+                        log.error("재시도 후에도 스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}", streamerId, retryError.message ?: "알 수 없는 오류")
+                    }
                 }
             }, taskExecutor)
         }
