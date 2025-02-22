@@ -37,7 +37,7 @@ dependencies {
     // 데이터 액세스 및 캐시
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-cache")
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+//    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.ehcache:ehcache:3.10.8")
     implementation("org.hibernate.orm:hibernate-jcache:6.5.3.Final")
     
