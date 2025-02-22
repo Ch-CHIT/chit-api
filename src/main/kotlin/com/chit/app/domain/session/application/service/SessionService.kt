@@ -4,11 +4,11 @@ import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.application.dto.SseEvent
-import com.chit.app.domain.session.domain.model.ParticipantOrder
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.event.ParticipantDisconnectionEvent
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
+import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
 import com.chit.app.global.common.response.SuccessResponse.PagedResponse
 import org.springframework.context.ApplicationEventPublisher
@@ -32,6 +32,7 @@ class SessionService(
     
     private val log = logger<SessionService>()
     
+    @LogExecutionTime
     @Transactional
     fun createContentsSession(streamerId: Long, gameParticipationCode: String?, maxGroupParticipants: Int): ContentsSessionResponseDto {
         val openLiveStream = getOpenLiveStream(streamerId)
@@ -49,8 +50,9 @@ class SessionService(
         return savedSession.toResponseDto()
     }
     
+    @LogExecutionTime
     @Transactional(readOnly = true)
-    fun getCurrentOpeningContentsSession(streamerId: Long, pageable: Pageable): ContentsSessionResponseDto {
+    fun getOpeningContentsSession(streamerId: Long, pageable: Pageable): ContentsSessionResponseDto {
         val session = getOpenContentsSessionByStreamerId(streamerId)
         val participants = sessionRepository.findPagedParticipantsBySessionCode(session.sessionCode, pageable)
         return ContentsSessionResponseDto(
@@ -62,35 +64,50 @@ class SessionService(
         )
     }
     
+    @LogExecutionTime
     @Transactional
-    fun updateContentsSession(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
+    fun modifySessionSettings(streamerId: Long, maxGroupParticipants: Int, gameParticipationCode: String?): ContentsSessionResponseDto {
         val session = getOpenContentsSessionByStreamerId(streamerId)
-        val updatedSession = session.updateGameSettings(gameParticipationCode, maxGroupParticipants)
-        return updatedSession.toResponseDto()
+        val updatedSession = session.updateGameSettings(gameParticipationCode, maxGroupParticipants).toResponseDto()
+        streamerSseService.emitStreamerEvent(
+            streamerId,
+            updatedSession,
+            SseEvent.STREAMER_SESSION_UPDATED
+        )
+        sessionSseService.reorderSessionParticipants(
+            session.sessionCode,
+            session.gameParticipationCode,
+            session.maxGroupParticipants,
+            SseEvent.PARTICIPANT_SESSION_UPDATED
+        )
+        return updatedSession
     }
     
+    @LogExecutionTime
     @Transactional
-    fun processParticipantRemoval(streamerId: Long, viewerId: Long?) {
+    fun publishDisconnectionNotification(streamerId: Long, viewerId: Long?) {
         require(viewerId != null) { "유효하지 않은 참여자 정보입니다." }
         val session = getOpenContentsSessionByStreamerId(streamerId)
         eventPublisher.publishEvent(ParticipantDisconnectionEvent(session.sessionCode, viewerId))
     }
     
+    @LogExecutionTime
     @Transactional
     fun closeContentsSession(streamerId: Long) {
         val session = getOpenContentsSessionByStreamerId(streamerId).apply { close() }
         val sessionCode = session.sessionCode
         
         sessionRepository.setAllParticipantsToLeft(sessionCode)
-        ParticipantOrderManager.removeSession(sessionCode)
+        ParticipantOrderManager.removeParticipantOrderQueue(sessionCode)
         runAsync({
-            sessionSseService.disconnectAllParticipants(sessionCode)
+            sessionSseService.disconnectAllSseEmitter(sessionCode)
             streamerSseService.unsubscribe(streamerId)
         }, taskExecutor)
     }
     
+    @LogExecutionTime
     @Transactional
-    fun togglePick(streamerId: Long, viewerId: Long?) {
+    fun switchFixedPickStatus(streamerId: Long, viewerId: Long?) {
         require(viewerId != null) { "유효하지 않은 참여자 정보입니다." }
         
         val session = getOpenContentsSessionByStreamerId(streamerId)
@@ -98,26 +115,47 @@ class SessionService(
                 ?: throw IllegalArgumentException("참여자를 찾을 수 없습니다. 해당 세션에 유효한 참가자가 존재하지 않습니다.")
         
         participant.toggleFixedPick()
-        val participantOrder = ParticipantOrder(
-            fixed = participant.fixedPick,
-            status = participant.status,
-            participantId = participant.id!!,
-            viewerId = viewerId
-        )
-        ParticipantOrderManager.updateParticipant(session.sessionCode, participantOrder)
-        runAsync({ sessionSseService.reorderSessionParticipants(session.sessionCode, SseEvent.PARTICIPANT_ORDER_UPDATED) }, taskExecutor)
+        ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, participant, viewerId)
+        runAsync({
+            sessionSseService.reorderSessionParticipants(
+                session.sessionCode,
+                session.gameParticipationCode,
+                session.maxGroupParticipants,
+                SseEvent.PARTICIPANT_ORDER_UPDATED
+            )
+        }, taskExecutor)
     }
     
+    @LogExecutionTime
     @Transactional(readOnly = true)
-    fun getGameParticipationCode(sessionCode: String, participantId: Long): ContentsSessionResponseDto {
+    fun retrieveGameParticipationCode(sessionCode: String, participantId: Long): ContentsSessionResponseDto {
         val gameParticipationCode = sessionRepository.findGameParticipationCodeBy(sessionCode, participantId)
                 ?: throw IllegalArgumentException("해당 세션에 참가자 정보가 존재하지 않습니다. 다시 확인해 주세요.")
         return ContentsSessionResponseDto(gameParticipationCode = gameParticipationCode)
     }
     
+    @LogExecutionTime
     @Transactional
-    fun leaveSession(viewerId: Long, sessionCode: String) {
-        sessionSseService.disconnectParticipant(sessionCode, viewerId)
+    fun exitContentsSession(viewerId: Long, sessionCode: String) {
+        sessionSseService.disconnectSseEmitter(sessionCode, viewerId)
+    }
+    
+    @LogExecutionTime
+    @Transactional
+    fun proceedToNextGroup(streamerId: Long) {
+        val session = getOpenContentsSessionByStreamerId(streamerId)
+        sessionRepository.findFirstPartyParticipants(session.id!!, session.maxGroupParticipants.toLong()).forEach { participant ->
+            participant.incrementSessionRound()
+        }
+        ParticipantOrderManager.advanceCycleForFirstNParticipantOrders(session)
+        runAsync({
+            sessionSseService.reorderSessionParticipants(
+                session.sessionCode,
+                session.gameParticipationCode,
+                session.maxGroupParticipants,
+                SseEvent.PARTICIPANT_ORDER_UPDATED
+            )
+        }, taskExecutor)
     }
     
     private fun getOpenContentsSessionByStreamerId(streamerId: Long): ContentsSession {
