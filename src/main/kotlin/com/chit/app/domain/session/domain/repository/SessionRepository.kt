@@ -63,7 +63,6 @@ class SessionRepository(
                     and(sp._status.ne(ParticipationStatus.LEFT))
                 }
         
-        // 콘텐츠 조회
         val participants: List<Participant> = query
                 .select(
                     Projections.constructor(
@@ -71,7 +70,8 @@ class SessionRepository(
                         sp.viewerId,
                         m.channelName,
                         sp._gameNickname,
-                        sp._fixedPick
+                        sp._fixedPick,
+                        sp._round,
                     )
                 )
                 .from(sp)
@@ -79,15 +79,14 @@ class SessionRepository(
                 .join(m).on(m.id.eq(sp.viewerId))
                 .where(condition)
                 .orderBy(
+                    sp._round.asc(),
                     sp._fixedPick.desc(),
-                    sp._status.asc(),
                     sp.id.asc()
                 )
                 .offset(pageable.offset)
                 .limit(pageable.pageSize.toLong())
                 .fetch()
         
-        // 전체 카운트 조회
         val total: Long = query
                 .select(count(sp.id))
                 .from(sp)
@@ -98,8 +97,8 @@ class SessionRepository(
         return PageImpl(participants, pageable, total)
     }
     
-    fun addParticipant(sessionParticipant: SessionParticipant) =
-            participantRepository.save(sessionParticipant).contentsSession.addParticipant()
+    fun addParticipant(sessionParticipant: SessionParticipant): SessionParticipant =
+            participantRepository.save(sessionParticipant)
     
     fun findParticipantBy(
             viewerId: Long,
@@ -144,5 +143,16 @@ class SessionRepository(
                 sp._status.eq(ParticipationStatus.JOINED)
             )
             .fetchFirst() != null
+    
+    fun findFirstPartyParticipants(sessionId: Long, maxGroupParticipants: Long): List<SessionParticipant> = query
+            .selectFrom(sp)
+            .where(sp.contentsSession.id.eq(sessionId))
+            .orderBy(
+                sp._round.asc(),
+                sp._fixedPick.desc(),
+                sp.id.asc()
+            )
+            .limit(maxGroupParticipants)
+            .fetch()
     
 }
