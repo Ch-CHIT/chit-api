@@ -34,7 +34,10 @@ class SessionParticipant private constructor(
         private var _fixedPick: Boolean = false,
         
         @Column(name = "fixed_pick_time")
-        private var _fixedPickTime: LocalDateTime? = null
+        private var _fixedPickTime: LocalDateTime? = null,
+        
+        @Column(name = "session_round", nullable = false)
+        private var _round: Int = 1
 
 ) : BaseEntity() {
     
@@ -47,10 +50,15 @@ class SessionParticipant private constructor(
             _status = value
         }
     
+    val round: Int
+        get() = _round
+    
     fun toggleFixedPick() {
         _fixedPick = !_fixedPick
         _fixedPickTime = if (_fixedPick) LocalDateTime.now() else null
     }
+    
+    fun incrementSessionRound(): Int = ++_round
     
     companion object {
         fun create(viewerId: Long, gameNickname: String, contentsSession: ContentsSession): SessionParticipant {
