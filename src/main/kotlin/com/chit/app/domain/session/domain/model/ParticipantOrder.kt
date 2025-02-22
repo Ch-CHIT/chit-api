@@ -1,20 +1,20 @@
 package com.chit.app.domain.session.domain.model
 
+import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 
 data class ParticipantOrder(
-        val cycle: Int = 1,
+        val round: Int,
         val fixed: Boolean = false,
         val status: ParticipationStatus,
         val participantId: Long,
         val viewerId: Long
 ) : Comparable<ParticipantOrder> {
+    
     override fun compareTo(other: ParticipantOrder): Int {
-        // 1. cycle이 작은 참가자가 우선
-        val cycleCompare = this.cycle.compareTo(other.cycle)
-        if (cycleCompare != 0) return cycleCompare
+        val roundCompare = this.round.compareTo(other.round)
+        if (roundCompare != 0) return roundCompare
         
-        // 2. fixed가 true인 참가자가 우선
         val fixedCompare = when {
             this.fixed == other.fixed -> 0
             this.fixed                -> -1
@@ -22,7 +22,23 @@ data class ParticipantOrder(
         }
         if (fixedCompare != 0) return fixedCompare
         
-        // 3. participantId가 낮은 참가자가 우선
         return this.participantId.compareTo(other.participantId)
     }
+    
+    fun nextCycle(): ParticipantOrder {
+        return copy(round = round + 1)
+    }
+    
+    companion object {
+        fun of(participant: SessionParticipant, viewerId: Long): ParticipantOrder {
+            return ParticipantOrder(
+                round = participant.round,
+                fixed = participant.fixedPick,
+                status = participant.status,
+                participantId = participant.id!!,
+                viewerId = viewerId
+            )
+        }
+    }
+    
 }
