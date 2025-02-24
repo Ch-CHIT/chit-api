@@ -82,7 +82,13 @@ class SessionSseService(
     fun disconnectAllSseEmitter(sessionCode: String) {
         val sessionEmitters = emitters.remove(sessionCode) ?: return
         val futures = sessionEmitters.map { (viewerId, emitter) ->
-            runAsync({ completeEmitterSafely(emitter, sessionCode, viewerId) }, taskExecutor)
+            runAsync({
+                SseUtil.emitEvent(emitter, SseEvent.PARTICIPANT_SESSION_CLOSED, mapOf(
+                    "status" to "OK",
+                    "message" to "시참 세션이 종료되었습니다."
+                ))
+                completeEmitterSafely(emitter, sessionCode, viewerId)
+            }, taskExecutor)
         }
         allOf(*futures.toTypedArray()).join()
         log.debug("세션 {}의 모든 emitters가 성공적으로 종료되었습니다.", sessionCode)
