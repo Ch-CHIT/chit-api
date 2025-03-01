@@ -22,9 +22,9 @@ class TokenService {
         return refreshToken
     }
     
-    @CacheEvict(value = ["refreshTokenCache"], key = "#refreshToken.memberId")
-    fun deleteRefreshToken(refreshToken: RefreshToken) {
-        log.info("회원 ID: ${refreshToken.memberId} 에 대한 리프레시 토큰이 캐시에서 삭제되었습니다.")
+    @CacheEvict(value = ["refreshTokenCache"], key = "#memberId")
+    fun deleteRefreshTokenByMemberId(memberId: Long) {
+        log.info("회원 ID: $memberId 에 대한 리프레시 토큰이 캐시에서 삭제되었습니다.")
     }
     
 }

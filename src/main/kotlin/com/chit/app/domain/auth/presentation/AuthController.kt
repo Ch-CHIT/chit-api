@@ -31,15 +31,11 @@ class AuthController(
     fun login(
             @RequestBody @Valid request: LoginRequestDto,
             httpResponse: HttpServletResponse
-            
     ): Message {
-        val tokenInfo = authService.login(code = request.code, state = request.state)
-        cookieManager.addCookie(
-            response = httpResponse,
-            cookieInfo = CookieInfo.REFRESH_TOKEN,
-            value = tokenInfo.refreshToken
-        )
-        liveStreamService.saveOrUpdateLiveStream(tokenInfo.memberId, tokenInfo.channelId)
+        val tokenInfo = authService.login(request.code, request.state).also {
+            cookieManager.addCookie(httpResponse, CookieInfo.REFRESH_TOKEN, it.refreshToken)
+            liveStreamService.saveOrUpdateLiveStream(it.memberId, it.channelId)
+        }
         return successWithData(tokenInfo.accessToken)
     }
     
