@@ -32,15 +32,7 @@ class ChzzkAuthApiClient(
                         .post()
                         .uri(tokenUri)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(
-                            TokenRequest(
-                                grantType = grantType,
-                                clientId = clientId,
-                                clientSecret = clientSecret,
-                                code = code,
-                                state = state
-                            )
-                        )
+                        .body(TokenRequest(grantType, clientId, clientSecret, code, state))
                         .retrieve()
                         .body(TokenResponse::class.java)?.content?.accessToken
                         ?: throw IllegalArgumentException("인증 코드 또는 상태 값이 올바르지 않습니다. 다시 시도해 주세요.")
