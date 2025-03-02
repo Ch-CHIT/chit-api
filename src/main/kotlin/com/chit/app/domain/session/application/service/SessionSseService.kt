@@ -52,10 +52,10 @@ class SessionSseService(
             maxGroupParticipants: Int,
             sseEvent: SseEvent
     ) {
-        val participantEmitters = emitters[sessionCode] ?: return
+        val sessionEmitters = emitters[sessionCode] ?: return
         val sortedParticipants = ParticipantOrderManager.getSortedParticipantOrders(sessionCode)
         val futures = sortedParticipants.mapIndexed { index, participantOrder ->
-            participantEmitters[participantOrder.viewerId]?.let { emitter ->
+            sessionEmitters[participantOrder.viewerId]?.let { emitter ->
                 runAsync({
                     val eventData = ParticipantOrderEvent.of(index, participantOrder, gameParticipationCode, maxGroupParticipants)
                     SseUtil.emitEvent(emitter, sseEvent, eventData)
@@ -75,7 +75,6 @@ class SessionSseService(
                 emitters.remove(sessionCode)
             }
         }
-        log.debug("참가자 제거 완료 - sessionCode: {}, viewerId: {}", sessionCode, viewerId)
     }
     
     @LogExecutionTime
@@ -102,7 +101,6 @@ class SessionSseService(
         }
         allOf(*futures.toTypedArray()).join()
         emitters.clear()
-        log.debug("모든 SSE Emitter가 성공적으로 종료되었습니다.")
     }
     
     private fun createAndRegisterEmitter(sessionCode: String, viewerId: Long): SseEmitter {
@@ -110,7 +108,6 @@ class SessionSseService(
         val sessionEmitters = emitters.computeIfAbsent(sessionCode) { ConcurrentHashMap() }
         sessionEmitters[viewerId] = emitter
         viewerIdToSessionCode[viewerId] = sessionCode
-        log.debug("새로운 Emitter 등록됨 - sessionCode: {}, viewerId: {}", sessionCode, viewerId)
         return emitter
     }
     
