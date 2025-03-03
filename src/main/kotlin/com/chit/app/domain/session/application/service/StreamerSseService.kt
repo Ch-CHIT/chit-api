@@ -42,7 +42,7 @@ class StreamerSseService(
         return emitter
     }
     
-    fun emitStreamerEvent(streamerId: Long?, data: Any, event: SseEvent) {
+    fun emitStreamerEvent(event: SseEvent, streamerId: Long?, data: Any) {
         emitters[streamerId]?.let { emitter ->
             runAsync({
                 try {
