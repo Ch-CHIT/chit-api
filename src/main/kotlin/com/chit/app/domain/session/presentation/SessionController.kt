@@ -65,7 +65,7 @@ class SessionController(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PathVariable("viewerId") viewerId: Long?
     ): Void {
-        sessionService.publishDisconnectionNotification(streamerId, viewerId)
+        sessionService.publishParticipantKickNotification(streamerId, viewerId)
         return success()
     }
     
