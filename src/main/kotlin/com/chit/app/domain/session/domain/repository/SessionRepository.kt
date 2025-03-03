@@ -1,7 +1,7 @@
 package com.chit.app.domain.session.domain.repository
 
 import com.chit.app.domain.member.domain.model.QMember
-import com.chit.app.domain.session.domain.model.Participant
+import com.chit.app.domain.session.domain.model.ParticipantResponseDto
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.entity.QContentsSession
 import com.chit.app.domain.session.domain.model.entity.QSessionParticipant
@@ -56,17 +56,17 @@ class SessionRepository(
             )
             .fetchOne()
     
-    fun findPagedParticipantsBySessionCode(sessionCode: String, pageable: Pageable): Page<Participant> {
+    fun findPagedParticipantsBySessionCode(sessionCode: String, pageable: Pageable): Page<ParticipantResponseDto> {
         val condition = BooleanBuilder()
                 .apply {
                     and(cs.sessionCode.eq(sessionCode))
                     and(sp._status.ne(ParticipationStatus.LEFT))
                 }
         
-        val participants: List<Participant> = query
+        val participants: List<ParticipantResponseDto> = query
                 .select(
                     Projections.constructor(
-                        Participant::class.java,
+                        ParticipantResponseDto::class.java,
                         sp.viewerId,
                         m.channelName,
                         sp._gameNickname,
