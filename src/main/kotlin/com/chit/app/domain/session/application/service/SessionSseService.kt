@@ -47,10 +47,10 @@ class SessionSseService(
     
     @LogExecutionTime
     fun reorderSessionParticipants(
+            sseEvent: SseEvent,
             sessionCode: String,
             gameParticipationCode: String?,
-            maxGroupParticipants: Int,
-            sseEvent: SseEvent
+            maxGroupParticipants: Int
     ) {
         val sessionEmitters = emitters[sessionCode] ?: return
         val sortedParticipants = ParticipantOrderManager.getSortedParticipantOrders(sessionCode)
