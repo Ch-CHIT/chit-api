@@ -1,6 +1,9 @@
-package com.chit.app.domain.session.application.service
+package com.chit.app.domain.session.application.service.handler
 
 import com.chit.app.domain.session.application.dto.SseEvent
+import com.chit.app.domain.session.application.service.SessionSseService
+import com.chit.app.domain.session.application.service.StreamerSseService
+import com.chit.app.domain.session.domain.model.Participant
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
@@ -10,11 +13,11 @@ import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.concurrent.CompletableFuture.runAsync
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 
 @Service
-class ParticipantService(
+class ParticipantEventHandler(
         private val taskExecutor: ExecutorService,
         
         private val sessionRepository: SessionRepository,
@@ -22,7 +25,7 @@ class ParticipantService(
         private val streamerSseService: StreamerSseService,
 ) {
     
-    private val log = logger<ParticipantService>()
+    private val log = logger<ParticipantEventHandler>()
     
     /**
      * 스트리머의 특정 세션에 참여자를 추가하고, 이후 전체 참여자 순서를 재정렬
@@ -33,7 +36,7 @@ class ParticipantService(
      */
     @LogExecutionTime
     @Transactional
-    fun joinParticipant(sessionCode: String, viewerId: Long, gameNickname: String) {
+    fun handleParticipantJoin(sessionCode: String, viewerId: Long, gameNickname: String) {
         // 세션 코드에 해당하는 열려 있는 세션을 조회 (세션이 없으면 예외 발생)
         val session = findOpenSessionOrThrow(sessionCode)
         
@@ -55,7 +58,7 @@ class ParticipantService(
      */
     @LogExecutionTime
     @Transactional
-    fun removeParticipant(sessionCode: String, viewerId: Long) {
+    fun handleParticipantExit(sessionCode: String, viewerId: Long) {
         // 참여자 조회 후, cleanupAfterRemoval() 호출하여 제거 및 후처리 수행
         val participant = sessionRepository.findParticipantBy(viewerId, sessionCode)
                 ?.apply { cleanupAfterRemoval() }
@@ -75,14 +78,11 @@ class ParticipantService(
         // 세션 내 참여자 수 감소 (-1)
         contentsSession.removeParticipant()
         
-        // SSE 연결 종료: 해당 세션의 emitter 연결 해제
-        sessionSseService.disconnectSseEmitter(contentsSession.sessionCode, viewerId)
-        
         // 참가 순서 재정렬
-        ParticipantOrderManager.removeParticipantOrder(contentsSession.sessionCode, viewerId)
+        val removedOrder = ParticipantOrderManager.removeParticipantOrderAndReturnIndex(contentsSession.sessionCode, viewerId)
         
         // 스트리머 이벤트 발송: 참여자 제거 이벤트 알림 전송
-        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_REMOVED, contentsSession)
+        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_REMOVED, contentsSession, this, removedOrder)
     }
     
     /**
@@ -95,7 +95,7 @@ class ParticipantService(
      */
     private fun registerParticipant(session: ContentsSession, viewerId: Long, gameNickname: String) {
         // 신규 참여자 객체 생성
-        val participant = SessionParticipant.create(viewerId, gameNickname, session)
+        val participant = SessionParticipant.Companion.create(viewerId, gameNickname, session)
         
         // 참여자 저장 및 세션 내 참여자 수 증가 (+1) 및 참여 순서 추가 또는 업데이트
         sessionRepository.addParticipant(participant)
@@ -103,7 +103,8 @@ class ParticipantService(
                 .also { ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, participant, viewerId) }
         
         // 스트리머 이벤트 발송: 신규 참여자 추가 이벤트 알림 전송
-        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_ADDED, session)
+        val order = ParticipantOrderManager.getParticipantOrderPosition(session.sessionCode, viewerId)
+        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_ADDED, session, participant, order)
     }
     
     /**
@@ -127,11 +128,23 @@ class ParticipantService(
      * 스트리머 이벤트 발송을 위한 헬퍼 메서드
      * - 비동기로 스트리머에게 이벤트를 전달
      */
-    private fun emitStreamerEvent(event: SseEvent, session: ContentsSession) {
-        runAsync({
+    private fun emitStreamerEvent(
+            event: SseEvent,
+            session: ContentsSession,
+            sessionParticipant: SessionParticipant,
+            order: Int?
+    ) {
+        CompletableFuture.runAsync({
             val data = mapOf(
                 "maxGroupParticipants" to session.maxGroupParticipants,
-                "currentParticipants" to session.currentParticipants
+                "currentParticipants" to session.currentParticipants,
+                "participant" to Participant(
+                    order = order,
+                    viewerId = sessionParticipant.viewerId,
+                    round = sessionParticipant.round,
+                    fixedPick = sessionParticipant.fixedPick,
+                    gameNickname = sessionParticipant.gameNickname,
+                )
             )
             streamerSseService.emitStreamerEvent(event, session.streamerId, data)
         }, taskExecutor)
@@ -142,7 +155,7 @@ class ParticipantService(
      * - 비동기로 세션 내 모든 참여자에게 순서 업데이트 이벤트를 전송
      */
     private fun reorderParticipants(session: ContentsSession) {
-        runAsync({
+        CompletableFuture.runAsync({
             sessionSseService.reorderSessionParticipants(
                 SseEvent.PARTICIPANT_ORDER_UPDATED,
                 session.sessionCode,
