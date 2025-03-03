@@ -15,12 +15,12 @@ class ParticipantEventListener(
 ) {
     
     @EventListener
-    fun handleParticipantJoin(event: ParticipantJoinEvent) {
+    fun onParticipantJoin(event: ParticipantJoinEvent) {
         CompletableFuture.runAsync({ handler.handleParticipantJoin(event.sessionCode, event.participantId, event.gameNickname) }, taskExecutor)
     }
     
     @EventListener
-    fun handleParticipantDisconnection(event: ParticipantExitEvent) {
+    fun onParticipantExit(event: ParticipantExitEvent) {
         CompletableFuture.runAsync({ handler.handleParticipantExit(event.sessionCode, event.viewerId) }, taskExecutor)
     }
     
