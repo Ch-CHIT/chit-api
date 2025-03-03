@@ -1,9 +1,12 @@
 package com.chit.app.domain.session.domain.model
 
+import com.fasterxml.jackson.annotation.JsonInclude
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Participant(
-        val memberId: Long,
-        val chzzkNickname: String,
-        val gameNickname: String,
+        val viewerId: Long,
+        val round: Int,
         val fixedPick: Boolean,
-        val round: Int
+        val gameNickname: String,
+        val chzzkNickname: String? = null
 )
