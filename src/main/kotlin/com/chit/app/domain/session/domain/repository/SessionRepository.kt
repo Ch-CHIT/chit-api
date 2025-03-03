@@ -36,13 +36,13 @@ class SessionRepository(
                     .onFailure { EntitySaveExceptionHandler.handle(it) }
                     .getOrThrow()
     
-    fun existsOpenContentsSession(liveId: Long): Boolean = query
+    fun notExistsOpenContentsSession(liveId: Long): Boolean = query
             .selectFrom(cs)
             .where(
                 cs.liveId.eq(liveId),
                 cs._status.eq(SessionStatus.OPEN)
             )
-            .fetchFirst() != null
+            .fetchFirst() == null
     
     fun findOpenContentsSessionBy(
             sessionCode: String? = null,
