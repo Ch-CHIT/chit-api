@@ -4,14 +4,13 @@ import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.application.dto.SseEvent
+import com.chit.app.domain.session.domain.model.Participant
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
-import com.chit.app.domain.session.domain.model.event.ParticipantDisconnectionEvent
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
 import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
 import com.chit.app.global.common.response.SuccessResponse.PagedResponse
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,8 +20,6 @@ import java.util.concurrent.ExecutorService
 @Service
 class SessionService(
         private val taskExecutor: ExecutorService,
-        private val eventPublisher: ApplicationEventPublisher,
-        
         private val sessionRepository: SessionRepository,
         private val sessionSseService: SessionSseService,
         private val streamerSseService: StreamerSseService,
@@ -86,20 +83,53 @@ class SessionService(
     }
     
     /**
-     * 스트리머의 현재 진행 중인 컨텐츠 세션에 대해, 특정 참여자의 연결 해제 이벤트를 발행
-     * -> viewerId가 null인 경우 예외 발생
+     * 스트리머의 세션 설정을 수정
+     *
+     * 1. 현재 스트리머의 열린 세션 정보를 조회
+     * 2. gameParticipationCode와 maxGroupParticipants 값을 기반으로 세션의 설정을 업데이트하고, 업데이트된 세션 정보를 ResponseDto로 변환
+     * 3. 스트리머에게 스트리머 세션 업데이트 이벤트(STREAMER_SESSION_UPDATED)를 전송
+     * 4. 세션 참가자들에게 참가자 세션 업데이트 이벤트(PARTICIPANT_SESSION_UPDATED)를 전송하여, 참가자 목록이나 순서 등의 UI를 업데이트
+     * 5. 최종적으로 업데이트된 세션 정보를 반환
      */
     @LogExecutionTime
     @Transactional
-    fun publishDisconnectionNotification(streamerId: Long, viewerId: Long?) {
-        // viewerId 유효성 체크
-        require(viewerId != null) { "유효하지 않은 참여자 정보입니다." }
-        
-        // 현재 열린 세션 정보 조회
+    fun modifySessionSettings(
+            streamerId: Long,
+            maxGroupParticipants: Int,
+            gameParticipationCode: String?
+    ): ContentsSessionResponseDto {
+        // 현재 스트리머의 열린 세션 정보를 조회 (존재하지 않으면 예외 발생)
         val session = getOpenContentsSessionByStreamerId(streamerId)
         
-        // 참여자 연결 해제 이벤트 발행
-        eventPublisher.publishEvent(ParticipantDisconnectionEvent(session.sessionCode, viewerId))
+        // 세션의 설정을 업데이트하고, 변경된 세션 정보를 ResponseDto로 변환
+        val updatedSession = session.updateGameSettings(gameParticipationCode, maxGroupParticipants).toResponseDto()
+        
+        // 스트리머에게 세션이 업데이트되었음을 알리는 SSE 이벤트를 전송
+        streamerSseService.emitStreamerEvent(SseEvent.STREAMER_SESSION_UPDATED, streamerId, updatedSession)
+        
+        // 세션 참가자들에게 세션 업데이트 및 순서 재정렬 이벤트를 전송
+        sessionSseService.reorderSessionParticipants(
+            SseEvent.PARTICIPANT_SESSION_UPDATED,
+            session.sessionCode,
+            session.gameParticipationCode,
+            session.maxGroupParticipants
+        )
+        
+        // 업데이트된 세션 정보를 반환
+        return updatedSession
+    }
+    
+    /**
+     * 스트리머의 현재 진행 중인 컨텐츠 세션에서 특정 참여자에 대해,
+     * 강제 퇴장(추방) 이벤트를 발행하는 메서드.
+     * - viewerId가 null이면 유효하지 않은 참여자 정보로 간주하여 예외를 발생시킴.
+     */
+    @LogExecutionTime
+    @Transactional
+    fun publishParticipantKickNotification(streamerId: Long, viewerId: Long?) {
+        require(viewerId != null) { "유효하지 않은 참여자 정보입니다." }
+        val session = getOpenContentsSessionByStreamerId(streamerId)
+        sessionSseService.emitParticipantKickEvent(viewerId, session.sessionCode)
     }
     
     /**
@@ -131,25 +161,43 @@ class SessionService(
     }
     
     /**
-     * 특정 참여자의 고정 선택(fixed pick) 상태를 토글하고, 변경된 상태를 반영하여 순서를 업데이트
-     * -> viewerId가 null이거나 해당 참여자를 찾지 못할 경우 예외 발생
+     * 특정 참여자의 고정 선택(fixed pick) 상태를 토글하고, 이를 반영하여 참가 순서를 업데이트
+     *
+     * - viewerId가 null이거나 해당 참여자를 찾지 못하면 예외 발생
+     * - 상태 변경 후, 업데이트된 정보를 비동기로 스트리머와 전체 참여자에게 전파
      */
     @LogExecutionTime
     @Transactional
     fun switchFixedPickStatus(streamerId: Long, viewerId: Long?) {
-        // viewerId 유효성 체크
+        // viewerId가 null이면 예외 발생
         require(viewerId != null) { "유효하지 않은 참여자 정보입니다." }
         
-        // 현재 열린 세션 정보 조회
+        // 현재 활성 세션 정보를 조회
         val session = getOpenContentsSessionByStreamerId(streamerId)
         
-        // 특정 참여자 조회 후 고정 선택 상태 토글 -> 참가 순서 업데이트, 없으면 예외 발생
-        sessionRepository.findParticipantBy(viewerId, sessionId = session.id!!)
+        // 참여자 조회 후 고정 선택 상태를 토글하고, 참가 순서를 업데이트
+        val participant = sessionRepository.findParticipantBy(viewerId, sessionId = session.id!!)
                 ?.apply { toggleFixedPick() }
                 ?.also { ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, it, viewerId) }
                 ?: throw IllegalArgumentException("참여자를 찾을 수 없습니다. 해당 세션에 유효한 참가자가 존재하지 않습니다.")
         
-        // 모든 참여자에게 순서 업데이트 이벤트 전송
+        // 스트리머에게 업데이트된 참가자 정보를 포함한 이벤트를 비동기로 전송
+        runAsync({
+            val data = mapOf(
+                "maxGroupParticipants" to session.maxGroupParticipants,
+                "currentParticipants" to session.currentParticipants,
+                "participant" to Participant(
+                    order = ParticipantOrderManager.getParticipantOrderPosition(session.sessionCode, viewerId),
+                    viewerId = participant.viewerId,
+                    round = participant.round,
+                    fixedPick = participant.fixedPick,
+                    gameNickname = participant.gameNickname,
+                )
+            )
+            streamerSseService.emitStreamerEvent(SseEvent.STREAMER_SESSION_UPDATED, session.streamerId, data)
+        }, taskExecutor)
+        
+        // 모든 참여자에게 순서 업데이트 이벤트를 비동기로 전송
         runAsync({
             sessionSseService.reorderSessionParticipants(
                 SseEvent.PARTICIPANT_ORDER_UPDATED,
