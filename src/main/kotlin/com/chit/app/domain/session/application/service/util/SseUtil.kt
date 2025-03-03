@@ -10,8 +10,8 @@ object SseUtil {
     private val log = logger<SseUtil>()
     
     fun emitEvent(
-            emitter: SseEmitter,
             event: SseEvent,
+            emitter: SseEmitter,
             data: Any
     ) {
         try {

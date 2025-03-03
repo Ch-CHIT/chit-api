@@ -137,7 +137,7 @@ class SessionService(
     @LogExecutionTime
     @Transactional
     fun exitContentsSession(viewerId: Long, sessionCode: String) {
-        sessionSseService.disconnectSseEmitter(sessionCode, viewerId)
+        sessionSseService.emitSessionCloseEvent(sessionCode, viewerId)
     }
     
     @LogExecutionTime

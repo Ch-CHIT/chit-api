@@ -30,7 +30,9 @@ class StreamerSseService(
         
         emitters[streamerId] = emitter
         SseUtil.emitEvent(
-            emitter, SseEvent.STREAMER_SSE_INITIALIZATION, mapOf(
+            SseEvent.STREAMER_SSE_INITIALIZATION,
+            emitter,
+            mapOf(
                 "status" to "OK",
                 "message" to "SSE 연결이 성공적으로 설정되었습니다."
             )
@@ -44,11 +46,11 @@ class StreamerSseService(
         emitters[streamerId]?.let { emitter ->
             runAsync({
                 try {
-                    SseUtil.emitEvent(emitter, event, data)
+                    SseUtil.emitEvent(event, emitter, data)
                 } catch (error: Exception) {
                     log.error("스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}. 재시도합니다.", streamerId, error.message ?: "알 수 없는 오류")
                     try {
-                        SseUtil.emitEvent(emitter, event, data)
+                        SseUtil.emitEvent(event, emitter, data)
                     } catch (retryError: Exception) {
                         log.error("재시도 후에도 스트리머 ID: {}에게 이벤트 전송에 실패했습니다. 오류: {}", streamerId, retryError.message ?: "알 수 없는 오류")
                     }
