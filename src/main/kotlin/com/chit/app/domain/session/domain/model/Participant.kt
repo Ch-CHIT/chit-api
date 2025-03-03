@@ -8,5 +8,6 @@ data class Participant(
         val round: Int,
         val fixedPick: Boolean,
         val gameNickname: String,
+        val order: Int? = null,
         val chzzkNickname: String? = null
 )
