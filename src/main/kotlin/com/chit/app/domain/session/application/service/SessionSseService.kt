@@ -3,7 +3,7 @@ package com.chit.app.domain.session.application.service
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.domain.session.application.service.util.SseUtil
 import com.chit.app.domain.session.domain.model.ParticipantOrder
-import com.chit.app.domain.session.domain.model.event.ParticipantDisconnectionEvent
+import com.chit.app.domain.session.domain.model.event.ParticipantExitEvent
 import com.chit.app.domain.session.domain.model.event.ParticipantJoinEvent
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
@@ -85,7 +85,36 @@ class SessionSseService(
             }, taskExecutor)
         }
         allOf(*futures.toTypedArray()).join()
-        log.debug("세션 {}의 모든 emitters가 성공적으로 종료되었습니다.", sessionCode)
+    }
+    
+    @LogExecutionTime
+    fun emitSessionCloseEvent(viewerId: Long, sessionCode: String) {
+        val sessionEmitters = emitters[sessionCode] ?: return
+        val emitter = sessionEmitters.remove(viewerId) ?: return
+        SseUtil.emitEvent(
+            SseEvent.PARTICIPANT_SESSION_CLOSED,
+            emitter,
+            mapOf(
+                "status" to "OK",
+                "message" to "시참 세션이 종료되었습니다."
+            )
+        )
+        cleanupAndCompleteEmitter(sessionEmitters, emitter, sessionCode)
+    }
+    
+    @LogExecutionTime
+    fun emitParticipantKickEvent(viewerId: Long, sessionCode: String) {
+        val sessionEmitters = emitters[sessionCode] ?: return
+        val emitter = sessionEmitters.remove(viewerId) ?: return
+        SseUtil.emitEvent(
+            SseEvent.PARTICIPANT_SESSION_KICKED,
+            emitter,
+            mapOf(
+                "status" to "KICKED",
+                "message" to "시참 세션에서 퇴장 처리되었습니다."
+            )
+        )
+        cleanupAndCompleteEmitter(sessionEmitters, emitter, sessionCode)
     }
     
     @LogExecutionTime
@@ -103,21 +132,6 @@ class SessionSseService(
         }
         allOf(*futures.toTypedArray()).join()
         emitters.clear()
-    }
-    
-    @LogExecutionTime
-    fun emitSessionCloseEvent(viewerId: Long, sessionCode: String) {
-        val sessionEmitters = emitters[sessionCode] ?: return
-        val emitter = sessionEmitters.remove(viewerId) ?: return
-        SseUtil.emitEvent(
-            SseEvent.PARTICIPANT_SESSION_CLOSED,
-            emitter,
-            mapOf(
-                "status" to "OK",
-                "message" to "시참 세션이 종료되었습니다."
-            )
-        )
-        cleanupAndCompleteEmitter(sessionEmitters, emitter, sessionCode)
     }
     
     private fun cleanupAndCompleteEmitter(
@@ -141,7 +155,7 @@ class SessionSseService(
         val cleanup: () -> Unit = {
             emitters[sessionCode]?.remove(viewerId)
             viewerIdToSessionCode.remove(viewerId)
-            eventPublisher.publishEvent(ParticipantDisconnectionEvent(sessionCode, viewerId))
+            eventPublisher.publishEvent(ParticipantExitEvent(sessionCode, viewerId))
         }
         
         val emitter = SseEmitter(timeout).apply {
