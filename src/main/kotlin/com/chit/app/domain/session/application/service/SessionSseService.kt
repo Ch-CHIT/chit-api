@@ -9,7 +9,6 @@ import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
 import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
-import com.fasterxml.jackson.annotation.JsonInclude
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
@@ -110,7 +109,7 @@ class SessionSseService(
             SseEvent.PARTICIPANT_SESSION_KICKED,
             emitter,
             mapOf(
-                "status" to "KICKED",
+                "status" to "OK",
                 "message" to "시참 세션에서 퇴장 처리되었습니다."
             )
         )
@@ -178,7 +177,6 @@ class SessionSseService(
         return emitter
     }
     
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private data class ParticipantOrderEvent(
             val order: Int,
             val fixed: Boolean,

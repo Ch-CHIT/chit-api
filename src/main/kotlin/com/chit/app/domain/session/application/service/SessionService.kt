@@ -194,7 +194,7 @@ class SessionService(
                     gameNickname = participant.gameNickname,
                 )
             )
-            streamerSseService.emitStreamerEvent(SseEvent.STREAMER_SESSION_UPDATED, session.streamerId, data)
+            streamerSseService.emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_FIXED, session.streamerId, data)
         }, taskExecutor)
         
         // 모든 참여자에게 순서 업데이트 이벤트를 비동기로 전송
