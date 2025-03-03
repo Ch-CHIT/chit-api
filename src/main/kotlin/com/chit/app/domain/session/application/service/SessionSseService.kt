@@ -106,7 +106,7 @@ class SessionSseService(
     }
     
     @LogExecutionTime
-    fun emitSessionCloseEvent(sessionCode: String, viewerId: Long) {
+    fun emitSessionCloseEvent(viewerId: Long, sessionCode: String) {
         val sessionEmitters = emitters[sessionCode] ?: return
         val emitter = sessionEmitters.remove(viewerId) ?: return
         SseUtil.emitEvent(

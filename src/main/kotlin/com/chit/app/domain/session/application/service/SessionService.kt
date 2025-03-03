@@ -181,7 +181,7 @@ class SessionService(
     @LogExecutionTime
     @Transactional
     fun exitContentsSession(viewerId: Long, sessionCode: String) {
-        sessionSseService.emitSessionCloseEvent(sessionCode, viewerId)
+        sessionSseService.emitSessionCloseEvent(viewerId, sessionCode)
     }
     
     /**
