@@ -53,6 +53,9 @@ class SessionParticipant private constructor(
     val round: Int
         get() = _round
     
+    val gameNickname: String
+        get() = _gameNickname
+    
     fun toggleFixedPick() {
         _fixedPick = !_fixedPick
         _fixedPickTime = if (_fixedPick) LocalDateTime.now() else null
