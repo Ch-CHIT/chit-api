@@ -22,7 +22,7 @@ class AuthService(
         val channel = chzzkAuthApiClient.fetchChzzkChannelInfo(chzzkAccessToken)
                 .let { (channelId, channelName, nickname) -> Channel(channelId, channelName, nickname) }
         
-        return memberRepository.findMemberByChannelName(channel.name)
+        return memberRepository.findBy(channelName = channel.name)
                 ?.createTokenInfo(chzzkAccessToken)
                 ?: register(channel, chzzkAccessToken)
     }
