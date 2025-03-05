@@ -1,7 +1,7 @@
 package com.chit.app.domain.session.domain.repository
 
 import com.chit.app.domain.member.domain.model.QMember
-import com.chit.app.domain.session.domain.model.ParticipantResponseDto
+import com.chit.app.domain.session.domain.model.Participant
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.entity.QContentsSession
 import com.chit.app.domain.session.domain.model.entity.QSessionParticipant
@@ -14,6 +14,7 @@ import com.chit.app.global.common.handler.EntitySaveExceptionHandler
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.core.types.ExpressionUtils.count
 import com.querydsl.core.types.Projections
+import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -56,22 +57,25 @@ class SessionRepository(
             )
             .fetchOne()
     
-    fun findPagedParticipantsBySessionCode(sessionCode: String, pageable: Pageable): Page<ParticipantResponseDto> {
+    fun findPagedParticipantsBySessionCode(sessionCode: String, pageable: Pageable): Page<Participant> {
         val condition = BooleanBuilder()
                 .apply {
                     and(cs.sessionCode.eq(sessionCode))
                     and(sp._status.ne(ParticipationStatus.LEFT))
                 }
         
-        val participants: List<ParticipantResponseDto> = query
+        val contents = query
                 .select(
                     Projections.constructor(
-                        ParticipantResponseDto::class.java,
+                        Participant::class.java,
+                        Expressions.constant(0),
+                        sp._round,
+                        sp._fixedPick,
+                        sp._status,
                         sp.viewerId,
+                        sp.id,
                         m.channelName,
                         sp._gameNickname,
-                        sp._fixedPick,
-                        sp._round,
                     )
                 )
                 .from(sp)
@@ -85,16 +89,18 @@ class SessionRepository(
                 )
                 .offset(pageable.offset)
                 .limit(pageable.pageSize.toLong())
-                .fetch()
+                .fetch().mapIndexed { index, event ->
+                    event.copy(order = index + 1 + pageable.offset.toInt())
+                }
         
-        val total: Long = query
+        val total = query
                 .select(count(sp.id))
                 .from(sp)
                 .join(sp.contentsSession, cs)
                 .where(condition)
                 .fetchOne() ?: 0L
         
-        return PageImpl(participants, pageable, total)
+        return PageImpl(contents, pageable, total)
     }
     
     fun addParticipant(sessionParticipant: SessionParticipant): SessionParticipant =
