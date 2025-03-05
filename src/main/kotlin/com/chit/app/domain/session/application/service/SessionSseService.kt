@@ -2,10 +2,9 @@ package com.chit.app.domain.session.application.service
 
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.domain.session.application.service.util.SseUtil
-import com.chit.app.domain.session.domain.model.ParticipantOrder
+import com.chit.app.domain.session.domain.model.ParticipantOrderEvent
 import com.chit.app.domain.session.domain.model.event.ParticipantExitEvent
 import com.chit.app.domain.session.domain.model.event.ParticipantJoinEvent
-import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
 import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
@@ -53,13 +52,13 @@ class SessionSseService(
     ) {
         val sessionEmitters = emitters[sessionCode] ?: return
         val sortedParticipants = ParticipantOrderManager.getSortedParticipantOrders(sessionCode)
-        val futures = sortedParticipants.mapIndexed { index, participantOrder ->
+        val futures = sortedParticipants.mapIndexed { order, participantOrder ->
             sessionEmitters[participantOrder.viewerId]?.let { emitter ->
                 runAsync({
                     SseUtil.emitEvent(
                         sseEvent,
                         emitter,
-                        ParticipantOrderEvent.of(index, participantOrder, gameParticipationCode, maxGroupParticipants)
+                        ParticipantOrderEvent.of(order, participantOrder, gameParticipationCode, maxGroupParticipants)
                     )
                 }, taskExecutor)
             } ?: completedFuture(null)
@@ -175,33 +174,6 @@ class SessionSseService(
         emitters.computeIfAbsent(sessionCode) { ConcurrentHashMap() }[viewerId] = emitter
         viewerIdToSessionCode[viewerId] = sessionCode
         return emitter
-    }
-    
-    private data class ParticipantOrderEvent(
-            val order: Int,
-            val fixed: Boolean,
-            val status: ParticipationStatus,
-            val viewerId: Long,
-            val participantId: Long,
-            val gameParticipationCode: String? = null
-    ) {
-        companion object {
-            fun of(
-                    index: Int,
-                    participantOrder: ParticipantOrder,
-                    gameParticipationCode: String?,
-                    maxGroupParticipants: Int
-            ): ParticipantOrderEvent {
-                return ParticipantOrderEvent(
-                    order = index + 1,
-                    fixed = participantOrder.fixed,
-                    status = participantOrder.status,
-                    viewerId = participantOrder.viewerId,
-                    participantId = participantOrder.participantId,
-                    gameParticipationCode = gameParticipationCode?.takeIf { index + 1 <= maxGroupParticipants && it.isNotEmpty() }
-                )
-            }
-        }
     }
     
 }
