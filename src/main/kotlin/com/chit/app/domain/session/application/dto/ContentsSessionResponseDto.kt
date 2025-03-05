@@ -1,6 +1,6 @@
 package com.chit.app.domain.session.application.dto
 
-import com.chit.app.domain.session.domain.model.ParticipantResponseDto
+import com.chit.app.domain.session.domain.model.Participant
 import com.chit.app.global.common.response.SuccessResponse.PagedResponse
 import com.fasterxml.jackson.annotation.JsonInclude
 
@@ -11,7 +11,7 @@ data class ContentsSessionResponseDto(
         val maxGroupParticipants: Int? = null,
         val currentParticipants: Int? = null,
         val gameParticipationCode: String? = null,
-        val participants: PagedResponse<ParticipantResponseDto>? = null
+        val participants: PagedResponse<Participant>? = null
 ) {
     override fun toString(): String {
         return listOfNotNull(
