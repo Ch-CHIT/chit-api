@@ -4,11 +4,13 @@ import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 
 data class ParticipantOrder(
-        val round: Int,
-        val fixed: Boolean = false,
-        val status: ParticipationStatus,
+        val viewerId: Long,
         val participantId: Long,
-        val viewerId: Long
+        val round: Int,
+        val fixedPick: Boolean,
+        val chzzkNickname: String,
+        val gameNickname: String,
+        val status: ParticipationStatus
 ) : Comparable<ParticipantOrder> {
     
     override fun compareTo(other: ParticipantOrder): Int {
@@ -16,9 +18,9 @@ data class ParticipantOrder(
         if (roundCompare != 0) return roundCompare
         
         val fixedCompare = when {
-            this.fixed == other.fixed -> 0
-            this.fixed                -> -1
-            else                      -> 1
+            this.fixedPick == other.fixedPick -> 0
+            this.fixedPick                    -> -1
+            else                              -> 1
         }
         if (fixedCompare != 0) return fixedCompare
         
@@ -30,13 +32,15 @@ data class ParticipantOrder(
     }
     
     companion object {
-        fun of(participant: SessionParticipant, viewerId: Long): ParticipantOrder {
+        fun of(participant: SessionParticipant, viewerId: Long, chzzkNickname: String): ParticipantOrder {
             return ParticipantOrder(
-                round = participant.round,
-                fixed = participant.fixedPick,
-                status = participant.status,
-                participantId = participant.id!!,
-                viewerId = viewerId
+                viewerId,
+                participant.id!!,
+                participant.round,
+                participant.fixedPick,
+                chzzkNickname,
+                participant.gameNickname,
+                participant.status
             )
         }
     }
