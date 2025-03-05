@@ -2,6 +2,7 @@ package com.chit.app.domain.session.application.service
 
 import com.chit.app.domain.live.domain.model.LiveStream
 import com.chit.app.domain.live.domain.repository.LiveStreamRepository
+import com.chit.app.domain.member.application.MemberService
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.domain.session.domain.model.Participant
@@ -20,6 +21,8 @@ import java.util.concurrent.ExecutorService
 @Service
 class SessionService(
         private val taskExecutor: ExecutorService,
+        private val memberService: MemberService,
+        
         private val sessionRepository: SessionRepository,
         private val sessionSseService: SessionSseService,
         private val streamerSseService: StreamerSseService,
@@ -175,29 +178,35 @@ class SessionService(
         // 현재 활성 세션 정보를 조회
         val session = getOpenContentsSessionByStreamerId(streamerId)
         
-        // 참여자 조회 후 고정 선택 상태를 토글하고, 참가 순서를 업데이트
+        // 해당 시청자의 치지직 닉네임을 조회
+        val chzzkNickname = memberService.getChzzkNickname(viewerId)
+        
+        // 참여자 조회 후 고정 선택 상태 토글 및 참가 순서 업데이트
         val participant = sessionRepository.findParticipantBy(viewerId, sessionId = session.id!!)
                 ?.apply { toggleFixedPick() }
-                ?.also { ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, it, viewerId) }
+                ?.also { ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, it, viewerId, chzzkNickname) }
                 ?: throw IllegalArgumentException("참여자를 찾을 수 없습니다. 해당 세션에 유효한 참가자가 존재하지 않습니다.")
         
-        // 스트리머에게 업데이트된 참가자 정보를 포함한 이벤트를 비동기로 전송
+        // 스트리머에게 업데이트된 참여자 정보와 함께 고정 선택 상태 변경 이벤트 전송 (비동기)
         runAsync({
             val data = mapOf(
                 "maxGroupParticipants" to session.maxGroupParticipants,
                 "currentParticipants" to session.currentParticipants,
                 "participant" to Participant(
                     order = ParticipantOrderManager.getParticipantOrderPosition(session.sessionCode, viewerId),
-                    viewerId = participant.viewerId,
                     round = participant.round,
                     fixedPick = participant.fixedPick,
+                    status = participant.status,
+                    viewerId = participant.viewerId,
+                    participantId = participant.id!!,
+                    chzzkNickname = chzzkNickname,
                     gameNickname = participant.gameNickname,
                 )
             )
             streamerSseService.emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_FIXED, session.streamerId, data)
         }, taskExecutor)
         
-        // 모든 참여자에게 순서 업데이트 이벤트를 비동기로 전송
+        // 모든 참여자에게 참가 순서 업데이트 이벤트 전송 (비동기)
         runAsync({
             sessionSseService.reorderSessionParticipants(
                 SseEvent.PARTICIPANT_ORDER_UPDATED,
