@@ -26,8 +26,8 @@ object ParticipantOrderManager {
      * sessionCode 에 해당하는 ParticipantOrder 를 추가하거나 업데이트
      * 기존에 같은 viewerId가 존재하면 먼저 제거한 후, 새로운 ParticipantOrder 를 추가
      */
-    fun addOrUpdateParticipantOrder(sessionCode: String, participant: SessionParticipant, viewerId: Long) {
-        update(sessionCode, ParticipantOrder.of(participant, viewerId))
+    fun addOrUpdateParticipantOrder(sessionCode: String, participant: SessionParticipant, viewerId: Long, chzzkNickname: String) {
+        update(sessionCode, ParticipantOrder.of(participant, viewerId, chzzkNickname))
     }
     
     /**
