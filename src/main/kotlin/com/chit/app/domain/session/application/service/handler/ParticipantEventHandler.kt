@@ -1,5 +1,6 @@
 package com.chit.app.domain.session.application.service.handler
 
+import com.chit.app.domain.member.application.MemberService
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.domain.session.application.service.SessionSseService
 import com.chit.app.domain.session.application.service.StreamerSseService
@@ -13,12 +14,13 @@ import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletableFuture.runAsync
 import java.util.concurrent.ExecutorService
 
 @Service
 class ParticipantEventHandler(
         private val taskExecutor: ExecutorService,
+        private val memberService: MemberService,
         
         private val sessionRepository: SessionRepository,
         private val sessionSseService: SessionSseService,
@@ -80,9 +82,10 @@ class ParticipantEventHandler(
         
         // 참가 순서 재정렬
         val removedOrder = ParticipantOrderManager.removeParticipantOrderAndReturnIndex(contentsSession.sessionCode, viewerId)
+        val chzzkNickname = memberService.getChzzkNickname(viewerId)
         
         // 스트리머 이벤트 발송: 참여자 제거 이벤트 알림 전송
-        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_REMOVED, contentsSession, this, removedOrder)
+        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_REMOVED, contentsSession, this, chzzkNickname, removedOrder)
     }
     
     /**
@@ -95,16 +98,17 @@ class ParticipantEventHandler(
      */
     private fun registerParticipant(session: ContentsSession, viewerId: Long, gameNickname: String) {
         // 신규 참여자 객체 생성
-        val participant = SessionParticipant.Companion.create(viewerId, gameNickname, session)
+        val participant = SessionParticipant.create(viewerId, gameNickname, session)
+        val chzzkNickname = memberService.getChzzkNickname(viewerId)
         
         // 참여자 저장 및 세션 내 참여자 수 증가 (+1) 및 참여 순서 추가 또는 업데이트
         sessionRepository.addParticipant(participant)
                 .apply { contentsSession.addParticipant() }
-                .also { ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, participant, viewerId) }
+                .also { ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, participant, viewerId, chzzkNickname) }
         
         // 스트리머 이벤트 발송: 신규 참여자 추가 이벤트 알림 전송
         val order = ParticipantOrderManager.getParticipantOrderPosition(session.sessionCode, viewerId)
-        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_ADDED, session, participant, order)
+        emitStreamerEvent(SseEvent.STREAMER_PARTICIPANT_ADDED, session, participant, chzzkNickname, order)
     }
     
     /**
@@ -132,17 +136,21 @@ class ParticipantEventHandler(
             event: SseEvent,
             session: ContentsSession,
             sessionParticipant: SessionParticipant,
+            chzzkNickname: String,
             order: Int?
     ) {
-        CompletableFuture.runAsync({
+        runAsync({
             val data = mapOf(
                 "maxGroupParticipants" to session.maxGroupParticipants,
                 "currentParticipants" to session.currentParticipants,
                 "participant" to Participant(
                     order = order,
-                    viewerId = sessionParticipant.viewerId,
                     round = sessionParticipant.round,
                     fixedPick = sessionParticipant.fixedPick,
+                    status = sessionParticipant.status,
+                    viewerId = sessionParticipant.viewerId,
+                    participantId = sessionParticipant.id!!,
+                    chzzkNickname = chzzkNickname,
                     gameNickname = sessionParticipant.gameNickname,
                 )
             )
@@ -155,7 +163,7 @@ class ParticipantEventHandler(
      * - 비동기로 세션 내 모든 참여자에게 순서 업데이트 이벤트를 전송
      */
     private fun reorderParticipants(session: ContentsSession) {
-        CompletableFuture.runAsync({
+        runAsync({
             sessionSseService.reorderSessionParticipants(
                 SseEvent.PARTICIPANT_ORDER_UPDATED,
                 session.sessionCode,
