@@ -2,8 +2,10 @@ package com.chit.app.domain.session.application.service
 
 import com.chit.app.domain.session.application.dto.SseEvent
 import com.chit.app.domain.session.application.service.util.SseUtil
+import com.chit.app.domain.session.domain.model.event.SessionCloseEvent
 import com.chit.app.global.annotation.LogExecutionTime
 import com.chit.app.global.common.logging.logger
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.util.concurrent.CompletableFuture.allOf
@@ -13,20 +15,28 @@ import java.util.concurrent.ExecutorService
 
 @Service
 class StreamerSseService(
-        private val taskExecutor: ExecutorService
+        private val taskExecutor: ExecutorService,
+        private val eventPublisher: ApplicationEventPublisher
 ) {
     
     private val log = logger<StreamerSseService>()
     private val emitters = ConcurrentHashMap<Long, SseEmitter>()
     
     fun subscribe(streamerId: Long): SseEmitter {
-        emitters[streamerId]?.apply { complete() }
-        val emitter = SseUtil.createSseEmitter(
-            timeout = Long.MAX_VALUE,
-            onCompletion = { unsubscribe(streamerId) },
-            onTimeout = { unsubscribe(streamerId) },
-            onError = { unsubscribe(streamerId) }
-        )
+        emitters[streamerId]?.let { existingEmitter ->
+            log.warn("스트리머 ID: {}의 기존 SSE 연결을 해제하고 새로운 연결을 설정합니다.", streamerId)
+            unsubscribe(streamerId)
+        }
+        
+        val emitter = SseEmitter(Long.MAX_VALUE)
+                .apply {
+                    onCompletion { eventPublisher.publishEvent(SessionCloseEvent(streamerId)) }
+                    onTimeout { eventPublisher.publishEvent(SessionCloseEvent(streamerId)) }
+                    onError { error ->
+                        log.error("스트리머 ID: {} SSE 연결 중 오류 발생: {}", streamerId, error.message, error)
+                        eventPublisher.publishEvent(SessionCloseEvent(streamerId))
+                    }
+                }
         
         emitters[streamerId] = emitter
         SseUtil.emitEvent(
@@ -38,8 +48,27 @@ class StreamerSseService(
             )
         )
         
-        log.debug("스트리머 {}의 새로운 SSE 연결을 초기화했습니다.", streamerId)
         return emitter
+    }
+    
+    fun unsubscribe(streamerId: Long?) {
+        emitters.remove(streamerId)?.let { emitter ->
+            try {
+                SseUtil.emitEvent(
+                    SseEvent.STREAMER_SSE_DISCONNECT,
+                    emitter,
+                    mapOf(
+                        "status" to "OK",
+                        "message" to "SSE 연결이 해제되었습니다."
+                    )
+                )
+            } catch (error: Exception) {
+                log.error("스트리머 ID: {} SSE 해제 메시지 전송 실패: {}", streamerId, error.message ?: "알 수 없는 오류")
+            } finally {
+                emitter.complete()
+                log.debug("스트리머 ID: {} SSE 연결 해제 완료", streamerId)
+            }
+        }
     }
     
     fun emitStreamerEvent(event: SseEvent, streamerId: Long?, data: Any) {
@@ -75,8 +104,5 @@ class StreamerSseService(
         allOf(*futures.toTypedArray()).join()
         emitters.clear()
     }
-    
-    fun unsubscribe(streamerId: Long?) =
-            emitters.remove(streamerId)?.apply { complete() }
     
 }
