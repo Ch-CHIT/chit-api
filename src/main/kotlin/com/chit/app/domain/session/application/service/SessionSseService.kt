@@ -79,6 +79,14 @@ class SessionSseService(
         val sessionEmitters = emitters.remove(sessionCode) ?: return
         val futures = sessionEmitters.map { (_, emitter) ->
             runAsync({
+                SseUtil.emitEvent(
+                    SseEvent.PARTICIPANT_SESSION_CLOSED,
+                    emitter,
+                    mapOf(
+                        "status" to "OK",
+                        "message" to "세션이 종료되었습니다."
+                    )
+                )
                 cleanupAndCompleteEmitter(sessionEmitters, emitter, sessionCode)
             }, taskExecutor)
         }
