@@ -71,6 +71,15 @@ class SessionSseService(
     fun disconnectSseEmitter(sessionCode: String, viewerId: Long) {
         val sessionEmitters = emitters[sessionCode] ?: return
         val emitter = sessionEmitters.remove(viewerId) ?: return
+        SseUtil.emitEvent(
+            SseEvent.PARTICIPANT_SESSION_CLOSED,
+            emitter,
+            mapOf(
+                "status" to "OK",
+                "message" to "세션이 종료되었습니다."
+            )
+        )
+        
         cleanupAndCompleteEmitter(sessionEmitters, emitter, sessionCode)
     }
     
