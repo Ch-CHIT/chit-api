@@ -32,19 +32,6 @@ object SseUtil {
         }
     }
     
-    fun createSseEmitter(
-            timeout: Long,
-            onCompletion: () -> Unit,
-            onTimeout: () -> Unit,
-            onError: (Throwable) -> Unit
-    ): SseEmitter {
-        return SseEmitter(timeout).apply {
-            onCompletion { onCompletion() }
-            onTimeout { onTimeout() }
-            onError { throwable -> onError(throwable) }
-        }
-    }
-    
     private fun safeComplete(emitter: SseEmitter, e: Throwable) {
         try {
             emitter.completeWithError(e)
