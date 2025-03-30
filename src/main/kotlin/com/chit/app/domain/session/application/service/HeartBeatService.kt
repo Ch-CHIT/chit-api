@@ -1,5 +1,9 @@
 package com.chit.app.domain.session.application.service
 
+import com.chit.app.domain.session.domain.repository.SessionRepository
+import com.chit.app.domain.sse.infrastructure.SseAdapter
+import com.chit.app.domain.sse.infrastructure.SseEmitterManager
+import com.chit.app.domain.sse.infrastructure.SseEventType
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -7,38 +11,51 @@ import java.util.concurrent.TimeUnit
 
 @Service
 class HeartBeatService(
-        private val sessionSseService: SessionSseService,
-        private val streamerSseService: StreamerSseService
+        private val sseAdapter: SseAdapter,
+        private val sseEmitterManager: SseEmitterManager,
+        private val sessionService: SessionService,
+        private val participantService: ParticipantService,
+        private val sessionRepository: SessionRepository
 ) {
     
-    private val lastHeartbeats = ConcurrentHashMap<Long, Long>()
-    private val sessionCodes = ConcurrentHashMap<Long, String>()
+    private data class HeartbeatKey(val memberId: Long, val sessionCode: String)
+    
+    private val lastHeartbeats = ConcurrentHashMap<HeartbeatKey, Long>()
     private val HEARTBEAT_TIMEOUT_MS = 15_000L
     
     init {
         Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory()).scheduleAtFixedRate({
             val now = System.currentTimeMillis()
-            lastHeartbeats.forEach { (memberId, lastTime) ->
+            lastHeartbeats.forEach { (key, lastTime) ->
                 if (now - lastTime > HEARTBEAT_TIMEOUT_MS) {
-                    val sessionCode = sessionCodes.remove(memberId)
-                    if (sessionCode != null) {
-                        sessionSseService.disconnectSseEmitter(sessionCode, memberId)
-                    } else {
-                        streamerSseService.unsubscribe(memberId)
-                    }
-                    lastHeartbeats.remove(memberId)
+                    processHeartbeatTimeout(key)
                 }
             }
         }, HEARTBEAT_TIMEOUT_MS, HEARTBEAT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
     }
     
-    fun touchViewer(memberId: Long, sessionCode: String) {
-        lastHeartbeats[memberId] = System.currentTimeMillis()
-        sessionCodes[memberId] = sessionCode
+    fun touch(memberId: Long, sessionCode: String) {
+        lastHeartbeats[HeartbeatKey(memberId, sessionCode)] = System.currentTimeMillis()
     }
     
-    fun touchStreamer(memberId: Long) {
-        lastHeartbeats[memberId] = System.currentTimeMillis()
+    private fun processHeartbeatTimeout(key: HeartbeatKey) {
+        val contentsSession = sessionRepository.findOpenContentsSessionBy(sessionCode = key.sessionCode) ?: return
+        if (contentsSession.streamerId == key.memberId) {
+            processStreamerTimeout(key)
+        } else {
+            processParticipantTimeout(key)
+        }
+        lastHeartbeats.remove(key)
+    }
+    
+    private fun processStreamerTimeout(key: HeartbeatKey) {
+        val sessionCode = sessionService.closeContentsSession(key.memberId)
+        sseAdapter.broadcastEvent(sessionCode, SseEventType.CLOSED_SESSION, null)
+        sseEmitterManager.unsubscribeAll(sessionCode)
+    }
+    
+    private fun processParticipantTimeout(key: HeartbeatKey) {
+        participantService.leaveSession(key.sessionCode, key.memberId)
     }
     
 }
