@@ -4,8 +4,8 @@ import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.global.common.response.SuccessResponse
 import org.springframework.http.ResponseEntity
 
-typealias Void = ResponseEntity<SuccessResponse<Unit>>
-typealias Message = ResponseEntity<SuccessResponse<String>>
-typealias NewContentsSession = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
-typealias DetailContentsSession = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
-typealias GameCode = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
+typealias EmptyResponse = ResponseEntity<SuccessResponse<Unit>>
+typealias MessageResponse = ResponseEntity<SuccessResponse<String>>
+typealias NewContentsSessionResponse = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
+typealias DetailContentsSessionResponse = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
+typealias GameCodeResponse = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>

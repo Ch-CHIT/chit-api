@@ -1,14 +1,15 @@
 package com.chit.app.domain.session.presentation
 
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
+import com.chit.app.domain.session.application.service.ParticipantService
 import com.chit.app.domain.session.application.service.SessionService
 import com.chit.app.domain.session.presentation.dto.ContentsSessionUpsertRequestDto
 import com.chit.app.global.common.response.SuccessResponse.Companion.success
 import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
-import com.chit.app.global.delegate.DetailContentsSession
-import com.chit.app.global.delegate.GameCode
-import com.chit.app.global.delegate.NewContentsSession
-import com.chit.app.global.delegate.Void
+import com.chit.app.global.delegate.DetailContentsSessionResponse
+import com.chit.app.global.delegate.EmptyResponse
+import com.chit.app.global.delegate.GameCodeResponse
+import com.chit.app.global.delegate.NewContentsSessionResponse
 import io.swagger.v3.oas.annotations.Parameter
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
@@ -17,24 +18,24 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/v1/contents/session")
 class SessionController(
-        private val sessionService: SessionService
+        private val sessionService: SessionService,
+        private val participantService: ParticipantService
 ) {
     
     @PostMapping
     fun createContentsSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @RequestBody requestDto: ContentsSessionUpsertRequestDto
-    ): NewContentsSession {
-        val (gameParticipationCode, maxGroupParticipants) = requestDto
-        val createdContentsSession = sessionService.createContentsSession(streamerId, gameParticipationCode, maxGroupParticipants)
-        return successWithData(createdContentsSession)
+    ): NewContentsSessionResponse {
+        val (maxGroupParticipants, gameParticipationCode) = requestDto
+        return successWithData(sessionService.createContentsSession(streamerId, gameParticipationCode, maxGroupParticipants))
     }
     
     @GetMapping
     fun getOpeningContentsSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PageableDefault(page = 0, size = 20) pageable: Pageable
-    ): DetailContentsSession {
+    ): DetailContentsSessionResponse {
         val contentsSessionDetail = sessionService.getOpeningContentsSession(streamerId, pageable)
         return successWithData(contentsSessionDetail)
     }
@@ -43,19 +44,19 @@ class SessionController(
     fun updateSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @RequestBody requestDto: ContentsSessionUpsertRequestDto
-    ): DetailContentsSession {
-        val updatedContentsSession = sessionService.modifySessionSettings(
+    ): DetailContentsSessionResponse {
+        val updatedSession = sessionService.modifySessionSettings(
             streamerId,
             requestDto.maxGroupParticipants,
             requestDto.gameParticipationCode
         )
-        return successWithData(updatedContentsSession)
+        return successWithData(updatedSession)
     }
     
     @DeleteMapping
     fun closeContentsSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long
-    ): Void {
+    ): EmptyResponse {
         sessionService.closeContentsSession(streamerId)
         return success()
     }
@@ -64,8 +65,8 @@ class SessionController(
     fun publishDisconnectionNotification(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PathVariable("viewerId") viewerId: Long?
-    ): Void {
-        sessionService.publishParticipantKickNotification(streamerId, viewerId)
+    ): EmptyResponse {
+        participantService.kickParticipant(streamerId, viewerId)
         return success()
     }
     
@@ -73,7 +74,7 @@ class SessionController(
     fun switchFixedPickStatus(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PathVariable("viewerId") viewerId: Long?
-    ): Void {
+    ): EmptyResponse {
         sessionService.switchFixedPickStatus(streamerId, viewerId)
         return success()
     }
@@ -81,7 +82,7 @@ class SessionController(
     @PutMapping("/next-group")
     fun proceedToNextGroup(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
-    ): Void {
+    ): EmptyResponse {
         sessionService.proceedToNextGroup(streamerId)
         return success()
     }
@@ -90,7 +91,7 @@ class SessionController(
     fun retrieveGameParticipationCode(
             @Parameter(hidden = true) @CurrentMemberId viewerId: Long,
             @PathVariable sessionCode: String
-    ): GameCode {
+    ): GameCodeResponse {
         return successWithData(sessionService.retrieveGameParticipationCode(sessionCode, viewerId))
     }
     
@@ -98,8 +99,8 @@ class SessionController(
     fun exitContentsSession(
             @Parameter(hidden = true) @CurrentMemberId viewerId: Long,
             @PathVariable sessionCode: String
-    ): Void {
-        sessionService.exitContentsSession(viewerId, sessionCode)
+    ): EmptyResponse {
+        participantService.leaveSession(sessionCode, viewerId)
         return success()
     }
     

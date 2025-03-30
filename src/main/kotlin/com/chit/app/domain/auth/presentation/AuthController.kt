@@ -4,8 +4,8 @@ import com.chit.app.domain.auth.application.AuthService
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
 import com.chit.app.domain.auth.presentation.dto.LoginRequestDto
 import com.chit.app.domain.live.application.LiveStreamService
-import com.chit.app.global.delegate.Message
-import com.chit.app.global.delegate.Void
+import com.chit.app.global.delegate.MessageResponse
+import com.chit.app.global.delegate.EmptyResponse
 import com.chit.app.global.common.response.SuccessResponse.Companion.success
 import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
 import com.chit.app.global.util.CookieInfo
@@ -31,7 +31,7 @@ class AuthController(
     fun login(
             @RequestBody @Valid request: LoginRequestDto,
             httpResponse: HttpServletResponse
-    ): Message {
+    ): MessageResponse {
         val tokenInfo = authService.login(request.code, request.state).also {
             cookieManager.addCookie(httpResponse, CookieInfo.REFRESH_TOKEN, it.refreshToken)
             liveStreamService.saveOrUpdateLiveStream(it.memberId, it.channelId)
@@ -44,7 +44,7 @@ class AuthController(
             request: HttpServletRequest,
             response: HttpServletResponse,
             @Parameter(hidden = true) @CurrentMemberId currentMemberId: Long
-    ): Void {
+    ): EmptyResponse {
         cookieManager.deleteCookie(request, response, CookieInfo.REFRESH_TOKEN)
         authService.logout(currentMemberId)
         return success()
