@@ -82,7 +82,7 @@ class SessionService(
     }
     
     @Transactional
-    fun closeContentsSession(streamerId: Long): String {
+    fun closeContentsSession(streamerId: Long) {
         // 세션 조회 및 종료
         val session = getOpenContentsSessionByStreamerId(streamerId).apply { close() }
         val sessionCode = session.sessionCode
@@ -95,7 +95,6 @@ class SessionService(
         sseAdapter.broadcastEvent(sessionCode, SseEventType.CLOSED_SESSION, null)
         // 세션에 대한 모든 SSE 구독 해제
         sseEmitterManager.unsubscribeAll(sessionCode)
-        return sessionCode
     }
     
     @Transactional
@@ -113,7 +112,7 @@ class SessionService(
         ParticipantOrderManager.addOrUpdateParticipantOrder(session.sessionCode, participant, validViewerId, chzzkNickname)
         
         // 스트리머에게 고정 이벤트를 비동기적으로 전송
-        sseAdapter.emitParticipantFixedEventAsync(validViewerId, session)
+        sseAdapter.emitParticipantFixedEventAsync(participant)
     }
     
     @Transactional(readOnly = true)
