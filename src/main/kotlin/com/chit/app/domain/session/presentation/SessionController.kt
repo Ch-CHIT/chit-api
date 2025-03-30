@@ -62,7 +62,7 @@ class SessionController(
     }
     
     @DeleteMapping("/participants/{viewerId}")
-    fun publishDisconnectionNotification(
+    fun kickParticipant(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PathVariable("viewerId") viewerId: Long?
     ): EmptyResponse {
