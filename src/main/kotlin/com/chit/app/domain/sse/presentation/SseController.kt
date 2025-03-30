@@ -1,8 +1,8 @@
 package com.chit.app.domain.sse.presentation
 
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
-import com.chit.app.domain.session.application.service.HeartBeatService
-import com.chit.app.domain.sse.infrastructure.SseAdapter
+import com.chit.app.domain.session.application.scheduler.SessionHeartbeatScheduler
+import com.chit.app.domain.sse.application.SseSubscribeService
 import com.chit.app.global.common.response.SuccessResponse.Companion.success
 import com.chit.app.global.delegate.EmptyResponse
 import org.springframework.http.MediaType
@@ -15,8 +15,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 @RestController
 @RequestMapping("/api/v1/sse/session")
 class SseController(
-        private val sseAdapter: SseAdapter,
-        private val heartBeatService: HeartBeatService
+        private val sseSubscribeService: SseSubscribeService,
+        private val sessionHeartbeatScheduler: SessionHeartbeatScheduler
 ) {
     
     @GetMapping("/subscribe", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
@@ -25,8 +25,8 @@ class SseController(
             @RequestParam sessionCode: String,
             @RequestParam(required = false) gameNickname: String?
     ): SseEmitter {
-        val emitter = sseAdapter.subscribe(memberId, sessionCode, gameNickname)
-        heartBeatService.touch(memberId, sessionCode)
+        val emitter = sseSubscribeService.subscribe(memberId, sessionCode, gameNickname)
+        sessionHeartbeatScheduler.touch(memberId, sessionCode)
         return emitter
     }
     
@@ -35,7 +35,7 @@ class SseController(
             @CurrentMemberId memberId: Long,
             @RequestParam sessionCode: String
     ): EmptyResponse {
-        heartBeatService.touch(memberId, sessionCode)
+        sessionHeartbeatScheduler.touch(memberId, sessionCode)
         return success()
     }
     
