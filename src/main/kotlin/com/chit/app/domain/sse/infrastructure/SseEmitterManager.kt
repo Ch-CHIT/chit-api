@@ -3,15 +3,10 @@ package com.chit.app.domain.sse.infrastructure
 import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
-import java.util.concurrent.CompletableFuture.allOf
-import java.util.concurrent.CompletableFuture.runAsync
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutorService
 
 @Component
-class SseEmitterManager(
-        private val taskExecutor: ExecutorService
-) {
+class SseEmitterManager{
     
     private val log = logger<SseEmitterManager>()
     private val memberIdToSessionCode = ConcurrentHashMap<Long, String>()
@@ -44,20 +39,6 @@ class SseEmitterManager(
     }
     
     fun completeAllEmitters() {
-        val futures = emitters.values.flatMap { sessionEmitters ->
-            sessionEmitters.entries.map { (memberId, emitter) ->
-                runAsync({
-                    try {
-                        emitter.complete()
-                        log.info("SSE 연결 종료 완료: 회원 ID: $memberId, 세션코드: ${sessionEmitters.keys.firstOrNull()}")
-                    } catch (e: Exception) {
-                        log.error("SSE 연결 종료 실패: 회원 ID: $memberId, 세션코드: ${sessionEmitters.keys.firstOrNull()}, 에러: ${e.message}", e)
-                    }
-                }, taskExecutor)
-            }
-        }
-        
-        allOf(*futures.toTypedArray()).join()
         emitters.clear()
         memberIdToSessionCode.clear()
     }
