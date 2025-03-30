@@ -109,7 +109,8 @@ class SessionRepository(
     fun findParticipantBy(
             viewerId: Long,
             sessionCode: String? = null,
-            sessionId: Long? = null
+            sessionId: Long? = null,
+            streamerId: Long? = null
     ): SessionParticipant? = query
             .select(sp)
             .from(sp)
@@ -117,6 +118,7 @@ class SessionRepository(
             .where(
                 sessionCode?.let { cs.sessionCode.eq(it) },
                 sessionId?.let { cs.id.eq(it) },
+                streamerId?.let { cs.streamerId.eq(it) },
                 cs._status.eq(SessionStatus.OPEN),
                 sp.viewerId.eq(viewerId),
                 sp._status.eq(ParticipationStatus.JOINED)
@@ -150,7 +152,7 @@ class SessionRepository(
             )
             .fetchFirst() != null
     
-    fun findFirstPartyParticipants(sessionId: Long, maxGroupParticipants: Long): List<SessionParticipant> = query
+    fun findFirstPartyParticipants(sessionId: Long, maxGroupParticipants: Int): List<SessionParticipant> = query
             .selectFrom(sp)
             .where(sp.contentsSession.id.eq(sessionId))
             .orderBy(
@@ -158,7 +160,7 @@ class SessionRepository(
                 sp._fixedPick.desc(),
                 sp.id.asc()
             )
-            .limit(maxGroupParticipants)
+            .limit(maxGroupParticipants.toLong())
             .fetch()
     
 }
