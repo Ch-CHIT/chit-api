@@ -11,6 +11,7 @@ data class ParticipantOrderEvent(
         val participantId: Long,
         val chzzkNickname: String,
         val gameNickname: String,
+        val isReadyToPlay: Boolean,
         val gameParticipationCode: String?,
 ) {
     companion object {
@@ -20,8 +21,10 @@ data class ParticipantOrderEvent(
                 gameParticipationCode: String?,
                 maxGroupParticipants: Int
         ): ParticipantOrderEvent {
+            val eventOrder = order + 1
+            val isPendingValue = eventOrder <= maxGroupParticipants
             return ParticipantOrderEvent(
-                order = order + 1,
+                order = eventOrder,
                 round = participantOrder.round,
                 fixedPick = participantOrder.fixedPick,
                 status = participantOrder.status,
@@ -29,7 +32,8 @@ data class ParticipantOrderEvent(
                 participantId = participantOrder.participantId,
                 chzzkNickname = participantOrder.chzzkNickname,
                 gameNickname = participantOrder.gameNickname,
-                gameParticipationCode = gameParticipationCode?.takeIf { order + 1 <= maxGroupParticipants && it.isNotEmpty() }
+                isReadyToPlay = isPendingValue,
+                gameParticipationCode = if (isPendingValue && !gameParticipationCode.isNullOrEmpty()) gameParticipationCode else null
             )
         }
     }
