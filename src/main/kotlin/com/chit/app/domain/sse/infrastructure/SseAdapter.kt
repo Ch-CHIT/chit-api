@@ -42,11 +42,11 @@ class SseAdapter(
     @Async
     fun emitStreamerSessionUpdateEventAsync(streamerId: Long, contentsSession: ContentsSession, updatedContentsSession: ContentsSessionResponseDto) {
         // 1. 스트리머에게 업데이트된 세션 이벤트 전송
-        sendEvent(streamerId, updatedContentsSession.sessionCode!!, SseEventType.STREAMER_SESSION_UPDATED, updatedContentsSession)
+        sendEvent(streamerId, updatedContentsSession.sessionCode!!, SseEventType.UPDATED_SESSION, updatedContentsSession)
         log.info("스트리머($streamerId)에게 세션 업데이트 이벤트 전송 션료")
         
         // 2. 참여자 순서 변경 이벤트 브로드캐스트
-        notifyReorderedParticipants(SseEventType.STREAMER_SESSION_UPDATED, contentsSession)
+        notifyReorderedParticipants(SseEventType.UPDATED_SESSION, contentsSession)
     }
     
     @Async
