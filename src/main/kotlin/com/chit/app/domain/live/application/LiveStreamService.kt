@@ -21,13 +21,7 @@ class LiveStreamService(
     @Transactional
     fun saveOrUpdateLiveStream(streamerId: Long?, channelId: String) {
         val fetchedLiveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId) ?: return
-        val existingLiveStream = liveStreamRepository.findOpenLiveStreamBy(channelId = channelId)
-                ?: run {
-                    // 기존 라이브 스트림이 없으면 새로 생성
-                    createLiveStream(streamerId, channelId, fetchedLiveDetail)
-                    return
-                }
-        
+        val existingLiveStream = liveStreamRepository.findLiveStreamBy(streamerId) ?: return
         if (fetchedLiveDetail.liveId != existingLiveStream.liveId) {
             // 라이브 ID가 다르면 기존 스트림을 닫고 새 스트림 생성
             existingLiveStream.liveStatus = LiveStatus.CLOSE
