@@ -1,13 +1,12 @@
-package com.chit.app.domain.auth.infrastructure.security.filter
+package com.chit.app.domain.auth.presentation.filter
 
-import com.chit.app.domain.auth.infrastructure.security.TokenProvider
 import com.chit.app.domain.auth.infrastructure.properties.JwtFilterProperties
+import com.chit.app.domain.auth.infrastructure.security.TokenProvider
 import com.chit.app.global.common.logging.logger
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException
 import jakarta.servlet.FilterChain
-import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -15,7 +14,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
-import java.io.IOException
 
 class JwtAuthenticationFilter(
         private val tokenProvider: TokenProvider,
@@ -30,13 +28,12 @@ class JwtAuthenticationFilter(
         private val PATH_MATCHER = AntPathMatcher()
     }
     
-    @Throws(ServletException::class, IOException::class)
     override fun doFilterInternal(
             request: HttpServletRequest,
             response: HttpServletResponse,
             filterChain: FilterChain
     ) {
-        runCatching {
+        try {
             when {
                 request.isWhitelistedUrl() -> {
                     filterChain.doFilter(request, response)
@@ -51,15 +48,19 @@ class JwtAuthenticationFilter(
                     handleAuthentication(request, isSse = false)
                 }
             }
-        }.onFailure { e ->
-            when (e) {
-                is ExpiredJwtException      -> log.error("만료된 JWT 토큰입니다: ${e.message}", e)
-                is MalformedJwtException    -> log.error("잘못된 형식의 JWT 토큰입니다: ${e.message}", e)
-                is UnsupportedJwtException  -> log.error("지원되지 않는 JWT 토큰입니다: ${e.message}", e)
-                is SecurityException        -> log.error("잘못된 JWT 서명입니다: ${e.message}", e)
-                is IllegalArgumentException -> log.error("JWT 토큰이 잘못되었습니다: ${e.message}", e)
-                else                        -> log.error("인증 필터에서 알 수 없는 예외 발생: ${e.message}", e)
-            }
+        } catch (e: ExpiredJwtException) {
+            handleExpiredJwtException(e, response)
+            return
+        } catch (e: MalformedJwtException) {
+            log.error("잘못된 형식의 JWT 토큰입니다: ${e.message}", e)
+        } catch (e: UnsupportedJwtException) {
+            log.error("지원되지 않는 JWT 토큰입니다: ${e.message}", e)
+        } catch (e: SecurityException) {
+            log.error("잘못된 JWT 서명입니다: ${e.message}", e)
+        } catch (e: IllegalArgumentException) {
+            log.error("JWT 토큰이 잘못되었습니다: ${e.message}", e)
+        } catch (e: Exception) {
+            log.error("인증 필터에서 알 수 없는 예외 발생: ${e.message}", e)
         }
         
         filterChain.doFilter(request, response)
@@ -92,4 +93,21 @@ class JwtAuthenticationFilter(
     
     private fun HttpServletRequest.extractSseToken(): String? =
             getParameter("accessToken")?.takeIf { it.isNotBlank() }
+    
+    private fun handleExpiredJwtException(e: ExpiredJwtException, response: HttpServletResponse) {
+        log.warn("만료된 JWT 토큰입니다: ${e.message}")
+        response.status = HttpServletResponse.SC_UNAUTHORIZED
+        response.contentType = "application/json"
+        response.characterEncoding = "UTF-8"
+        response.writer.write(
+            """
+        {
+          "status": 401,
+          "data": "EXPIRED_TOKEN",
+          "message": "액세스 토큰이 만료되었습니다."
+        }
+        """.trimIndent()
+        )
+        response.writer.flush()
+    }
 }

@@ -72,18 +72,20 @@ class TokenProvider {
                     .build()
                     .parseClaimsJws(token)
             true
-        } catch (e: Exception) {
-            when (e) {
-                is SecurityException        -> log.warn("잘못된 서명: {}", e.message)
-                is MalformedJwtException    -> log.warn("JWT 토큰 형식 오류: {}", e.message)
-                is ExpiredJwtException      -> log.warn("만료된 JWT 토큰: {}", e.message)
-                is UnsupportedJwtException  -> log.warn("지원되지 않는 JWT 토큰: {}", e.message)
-                is IllegalArgumentException -> log.warn("잘못된 토큰 값: {}", e.message)
-                else                        -> {
-                    log.error("예상치 못한 토큰 검증 오류 발생", e)
-                    throw e
-                }
-            }
+        } catch (e: ExpiredJwtException) {
+            log.warn("만료된 JWT 토큰: {}", e.message)
+            throw e
+        } catch (e: SecurityException) {
+            log.warn("잘못된 서명: {}", e.message)
+            false
+        } catch (e: MalformedJwtException) {
+            log.warn("JWT 토큰 형식 오류: {}", e.message)
+            false
+        } catch (e: UnsupportedJwtException) {
+            log.warn("지원되지 않는 JWT 토큰: {}", e.message)
+            false
+        } catch (e: IllegalArgumentException) {
+            log.warn("잘못된 토큰 값: {}", e.message)
             false
         }
     }
