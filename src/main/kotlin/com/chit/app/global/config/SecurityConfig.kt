@@ -2,7 +2,7 @@ package com.chit.app.global.config
 
 import com.chit.app.domain.auth.infrastructure.security.JwtAuthenticationEntryPoint
 import com.chit.app.domain.auth.infrastructure.security.TokenProvider
-import com.chit.app.domain.auth.infrastructure.security.filter.JwtAuthenticationFilter
+import com.chit.app.domain.auth.presentation.filter.JwtAuthenticationFilter
 import com.chit.app.domain.auth.infrastructure.properties.JwtFilterProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
