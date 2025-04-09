@@ -15,9 +15,6 @@ class CookieManager(
     fun getCookie(request: HttpServletRequest, cookieInfo: CookieInfo): Cookie? =
             request.cookies?.find { it.name == cookieInfo.name }
     
-    fun getCookieValue(request: HttpServletRequest, cookieInfo: CookieInfo): String? =
-            getCookie(request, cookieInfo)?.value
-    
     fun hasCookie(request: HttpServletRequest, cookieInfo: CookieInfo): Boolean =
             getCookie(request, cookieInfo) != null
     
