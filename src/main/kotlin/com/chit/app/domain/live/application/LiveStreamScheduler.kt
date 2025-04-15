@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutorService
 @Component
 class LiveStreamScheduler(
         private val taskExecutor: ExecutorService,
-        private val liveStreamService: LiveStreamService,
+        private val liveStreamSyncService: LiveStreamSyncService,
         private val liveStreamRepository: LiveStreamRepository,
 ) {
     
@@ -37,7 +37,7 @@ class LiveStreamScheduler(
             if (slice.content.isEmpty()) break
             
             val updateTasks = slice.content.map { liveStream ->
-                supplyAsync({ liveStreamService.syncLiveStreamStatus(liveStream) }, taskExecutor)
+                supplyAsync({ liveStreamSyncService.syncLiveStreamStatus(liveStream) }, taskExecutor)
             }
             
             allOf(*updateTasks.toTypedArray()).join()
