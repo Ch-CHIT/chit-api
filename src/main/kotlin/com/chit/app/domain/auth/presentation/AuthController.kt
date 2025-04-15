@@ -2,7 +2,6 @@ package com.chit.app.domain.auth.presentation
 
 import com.chit.app.domain.auth.application.AuthService
 import com.chit.app.domain.auth.presentation.dto.LoginRequestDto
-import com.chit.app.domain.live.application.LiveStreamService
 import com.chit.app.global.common.response.SuccessResponse.Companion.success
 import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
 import com.chit.app.global.delegate.EmptyResponse
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
         private val cookieManager: CookieManager,
         private val authService: AuthService,
-        private val liveStreamService: LiveStreamService
 ) {
     
     @PostMapping("/login")
@@ -32,10 +30,7 @@ class AuthController(
             httpResponse: HttpServletResponse
     ): MessageResponse {
         val tokenInfo = authService.login(request.code, request.state)
-                .also {
-                    cookieManager.addCookie(httpResponse, CookieInfo.REFRESH_TOKEN, it.refreshToken)
-                    liveStreamService.saveOrUpdateLiveStream(it.memberId, it.channelId!!)
-                }
+        cookieManager.addCookie(httpResponse, CookieInfo.REFRESH_TOKEN, tokenInfo.refreshToken)
         return successWithData(tokenInfo.accessToken)
     }
     
