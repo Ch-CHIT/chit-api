@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class HeartBeatService(
-        private val sessionService: SessionService,
+        private val sessionCommandService: SessionCommandService,
         private val participantService: ParticipantService,
         private val sessionRepository: SessionRepository
 ) {
@@ -15,7 +15,7 @@ class HeartBeatService(
     fun processHeartbeatTimeout(sessionCode: String, memberId: Long) {
         val contentsSession = sessionRepository.findOpenContentsSessionBy(sessionCode = sessionCode) ?: return
         if (contentsSession.streamerId == memberId) {
-            sessionService.closeContentsSession(memberId)
+            sessionCommandService.closeContentsSession(memberId)
         } else {
             participantService.leaveSession(sessionCode, memberId)
         }

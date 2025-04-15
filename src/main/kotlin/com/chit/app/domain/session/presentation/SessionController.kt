@@ -2,7 +2,8 @@ package com.chit.app.domain.session.presentation
 
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
 import com.chit.app.domain.session.application.service.ParticipantService
-import com.chit.app.domain.session.application.service.SessionService
+import com.chit.app.domain.session.application.service.SessionCommandService
+import com.chit.app.domain.session.application.service.SessionQueryService
 import com.chit.app.domain.session.presentation.dto.ContentsSessionUpsertRequestDto
 import com.chit.app.global.common.response.SuccessResponse.Companion.success
 import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
@@ -18,7 +19,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/v1/contents/session")
 class SessionController(
-        private val sessionService: SessionService,
+        private val sessionCommandService: SessionCommandService,
+        private val sessionQueryService: SessionQueryService,
         private val participantService: ParticipantService
 ) {
     
@@ -28,24 +30,24 @@ class SessionController(
             @RequestBody requestDto: ContentsSessionUpsertRequestDto
     ): NewContentsSessionResponse {
         val (maxGroupParticipants, gameParticipationCode) = requestDto
-        return successWithData(sessionService.createContentsSession(streamerId, gameParticipationCode, maxGroupParticipants))
+        return successWithData(sessionCommandService.createContentsSession(streamerId, gameParticipationCode, maxGroupParticipants))
     }
     
     @GetMapping
-    fun getOpeningContentsSession(
+    fun getContentsSessionWithParticipants(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PageableDefault(page = 0, size = 20) pageable: Pageable
     ): DetailContentsSessionResponse {
-        val contentsSessionDetail = sessionService.getOpeningContentsSession(streamerId, pageable)
+        val contentsSessionDetail = sessionQueryService.getContentsSessionWithParticipants(streamerId, pageable)
         return successWithData(contentsSessionDetail)
     }
     
     @PutMapping
-    fun updateSession(
+    fun modifySessionSettings(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @RequestBody requestDto: ContentsSessionUpsertRequestDto
     ): DetailContentsSessionResponse {
-        val updatedSession = sessionService.modifySessionSettings(
+        val updatedSession = sessionCommandService.modifySessionSettings(
             streamerId,
             requestDto.maxGroupParticipants,
             requestDto.gameParticipationCode
@@ -57,7 +59,7 @@ class SessionController(
     fun closeContentsSession(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long
     ): EmptyResponse {
-        sessionService.closeContentsSession(streamerId)
+        sessionCommandService.closeContentsSession(streamerId)
         return success()
     }
     
@@ -75,7 +77,7 @@ class SessionController(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
             @PathVariable("viewerId") viewerId: Long?
     ): EmptyResponse {
-        sessionService.switchFixedPickStatus(streamerId, viewerId)
+        sessionCommandService.switchFixedPickStatus(streamerId, viewerId)
         return success()
     }
     
@@ -83,20 +85,20 @@ class SessionController(
     fun proceedToNextGroup(
             @Parameter(hidden = true) @CurrentMemberId streamerId: Long,
     ): EmptyResponse {
-        sessionService.proceedToNextGroup(streamerId)
+        sessionCommandService.proceedToNextGroup(streamerId)
         return success()
     }
     
     @GetMapping("/{sessionCode}/gameCode")
-    fun retrieveGameParticipationCode(
+    fun getGameParticipationCode(
             @Parameter(hidden = true) @CurrentMemberId viewerId: Long,
             @PathVariable sessionCode: String
     ): GameCodeResponse {
-        return successWithData(sessionService.retrieveGameParticipationCode(sessionCode, viewerId))
+        return successWithData(sessionQueryService.getGameParticipationCode(sessionCode, viewerId))
     }
     
     @DeleteMapping("/{sessionCode}/leave")
-    fun exitContentsSession(
+    fun leaveSession(
             @Parameter(hidden = true) @CurrentMemberId viewerId: Long,
             @PathVariable sessionCode: String
     ): EmptyResponse {
