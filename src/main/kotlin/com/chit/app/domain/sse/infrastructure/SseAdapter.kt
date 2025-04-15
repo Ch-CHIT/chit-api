@@ -1,6 +1,6 @@
 package com.chit.app.domain.sse.infrastructure
 
-import com.chit.app.domain.member.domain.repository.MemberRepository
+import com.chit.app.domain.member.application.MemberQueryService
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.domain.model.Participant
 import com.chit.app.domain.session.domain.model.ParticipantOrderEvent
@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService
 class SseAdapter(
         private val taskExecutor: ExecutorService,
         private val sseEmitterManager: SseEmitterManager,
-        private val memberRepository: MemberRepository
+        private val memberQueryService: MemberQueryService
 ) {
     
     private val log = logger<SseAdapter>()
@@ -144,9 +144,7 @@ class SseAdapter(
         val viewerId = participant.viewerId
         
         sseEmitterManager.getEmitter(sessionCode, contentsSession.streamerId!!)?.let { streamerEmitter ->
-            val chzzkNickname = memberRepository.findBy(memberId = viewerId)?.channelName
-                    ?: throw IllegalArgumentException("참여자 정보를 찾을 수 없습니다. 다시 시도해 주세요.")
-            
+            val chzzkNickname = memberQueryService.getMember(memberId = viewerId).channelName
             runAsync({
                 streamerEmitter.send(
                     eventType, SseData(
