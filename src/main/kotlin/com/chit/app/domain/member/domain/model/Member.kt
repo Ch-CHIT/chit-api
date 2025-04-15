@@ -1,14 +1,7 @@
 package com.chit.app.domain.member.domain.model
 
 import com.chit.app.global.common.entity.BaseEntity
-import jakarta.persistence.Cacheable
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Index
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import org.hibernate.annotations.Cache
 import org.hibernate.annotations.CacheConcurrencyStrategy
 import java.time.LocalDateTime
@@ -16,10 +9,7 @@ import java.time.LocalDateTime
 @Entity
 @Table(
     name = "members",
-    indexes = [
-        Index(name = "idx_members_channel_id_unique", columnList = "channel_id", unique = true),
-        Index(name = "idx_members_channel_name_unique", columnList = "channel_name", unique = true)
-    ]
+    uniqueConstraints = [UniqueConstraint(name = "unq_members_channel_id", columnNames = ["channel_id"])]
 )
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "memberCache")
