@@ -24,10 +24,13 @@ class LiveStreamRepository(
                     .onFailure { EntitySaveExceptionHandler.handle(it) }
                     .getOrThrow()
     
-    fun findLiveStreamBy(streamerId: Long?): LiveStream? = query
+    fun findLatestLiveStreamBy(streamerId: Long? = null, channelId: String? = null): LiveStream? = query
             .selectFrom(liveStream)
-            .where(streamerId?.let { liveStream.streamerId.eq(it) })
-            .orderBy(liveStream.createdAt.desc())
+            .where(
+                streamerId?.let { liveStream.streamerId.eq(it) },
+                channelId?.let { liveStream.channelId.eq(it) }
+            )
+            .orderBy(liveStream.id.desc())
             .fetchFirst()
     
     fun findOpenLiveStreamBy(
