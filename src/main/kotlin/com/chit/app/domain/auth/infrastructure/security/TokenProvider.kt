@@ -1,20 +1,15 @@
 package com.chit.app.domain.auth.infrastructure.security
 
+import com.chit.app.domain.auth.domain.exception.*
 import com.chit.app.global.common.logging.logger
-import io.jsonwebtoken.Claims
-import io.jsonwebtoken.ExpiredJwtException
-import io.jsonwebtoken.JwtException
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.MalformedJwtException
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.UnsupportedJwtException
+import io.jsonwebtoken.*
 import io.jsonwebtoken.security.Keys
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.security.Key
 import java.time.Instant
-import java.util.Date
+import java.util.*
 
 @Component
 class TokenProvider {
@@ -99,34 +94,29 @@ class TokenProvider {
                     .body
         } catch (e: Exception) {
             when (e) {
-                is ExpiredJwtException      -> {
+                is ExpiredJwtException     -> {
                     log.warn("만료된 토큰: {}", e.message)
-                    throw JwtException("만료된 토큰입니다.", e)
+                    throw ExpiredTokenException()
                 }
                 
-                is UnsupportedJwtException  -> {
+                is UnsupportedJwtException -> {
                     log.warn("지원되지 않는 토큰: {}", e.message)
-                    throw JwtException("지원되지 않는 토큰입니다.", e)
+                    throw UnsupportedTokenException()
                 }
                 
-                is MalformedJwtException    -> {
+                is MalformedJwtException   -> {
                     log.warn("JWT 토큰 형식 오류: {}", e.message)
-                    throw JwtException("형식이 올바르지 않은 토큰입니다.", e)
+                    throw MalformedTokenException()
                 }
                 
-                is SecurityException        -> {
+                is SecurityException       -> {
                     log.warn("잘못된 서명: {}", e.message)
-                    throw JwtException("잘못된 서명입니다.", e)
+                    throw InvalidSignatureException()
                 }
                 
-                is IllegalArgumentException -> {
-                    log.warn("잘못된 토큰 값: {}", e.message)
-                    throw JwtException("잘못된 토큰입니다.", e)
-                }
-                
-                else                        -> {
+                else                       -> {
                     log.error("예상치 못한 토큰 검증 오류 발생", e)
-                    throw e
+                    throw InvalidTokenException()
                 }
             }
         }
