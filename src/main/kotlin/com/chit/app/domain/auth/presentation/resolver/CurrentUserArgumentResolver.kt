@@ -1,8 +1,8 @@
 package com.chit.app.domain.auth.presentation.resolver
 
+import com.chit.app.domain.auth.domain.exception.AuthenticatedUserNotFoundException
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
 import org.springframework.core.MethodParameter
-import org.springframework.security.authentication.AuthenticationServiceException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.support.WebDataBinderFactory
@@ -27,7 +27,7 @@ class CurrentUserArgumentResolver : HandlerMethodArgumentResolver, WebMvcConfigu
         return SecurityContextHolder.getContext().authentication
                 ?.takeIf { it.isAuthenticated }
                 ?.principal
-                .let { principal -> (principal as? Long) ?: throw AuthenticationServiceException("인증된 사용자 ID가 존재하지 않습니다.") }
+                .let { principal -> (principal as? Long) ?: throw AuthenticatedUserNotFoundException() }
     }
     
     override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {

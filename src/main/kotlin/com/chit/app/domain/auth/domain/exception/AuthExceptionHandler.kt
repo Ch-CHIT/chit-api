@@ -104,4 +104,10 @@ class AuthExceptionHandler {
         return failWithMessage(HttpStatus.INTERNAL_SERVER_ERROR, ex.message, ex.errorCode)
     }
     
+    @ExceptionHandler(AuthenticatedUserNotFoundException::class)
+    fun handleAuthenticatedUserNotFound(ex: AuthenticatedUserNotFoundException): ResponseEntity<ErrorResponse> {
+        log.error("AuthenticatedUserNotFoundException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.UNAUTHORIZED, ex.message, ex.errorCode)
+    }
+    
 }

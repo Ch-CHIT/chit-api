@@ -74,3 +74,8 @@ class InvalidChannelInfoException(
         val errorCode: Int = 40015,
         cause: Throwable? = null
 ) : RuntimeException("채널 정보를 가져오는 데 실패했습니다. 유효하지 않은 토큰이거나 요청 경로가 잘못되었습니다.", cause)
+
+class AuthenticatedUserNotFoundException(
+        val errorCode: Int = 40016,
+        cause: Throwable? = null
+) : RuntimeException("인증된 사용자 정보가 존재하지 않습니다.", cause)
