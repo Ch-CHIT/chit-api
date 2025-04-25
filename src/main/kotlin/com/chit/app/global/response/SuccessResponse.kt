@@ -1,4 +1,4 @@
-package com.chit.app.global.common.response
+package com.chit.app.global.response
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import org.springframework.data.domain.Page
@@ -8,13 +8,14 @@ import org.springframework.http.ResponseEntity
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class SuccessResponse<T>(
         val status: Int,
+        val code: Int = 20000,
         val data: T? = null
 ) {
     companion object {
         fun <Unit> success(): ResponseEntity<SuccessResponse<Unit>> =
                 ResponseEntity.ok(
                     SuccessResponse(
-                        status = HttpStatus.OK.value()
+                        status = HttpStatus.OK.value(),
                     )
                 )
         
