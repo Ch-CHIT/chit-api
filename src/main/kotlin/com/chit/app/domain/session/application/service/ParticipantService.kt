@@ -1,5 +1,7 @@
 package com.chit.app.domain.session.application.service
 
+import com.chit.app.domain.session.domain.exception.InvalidParticipantException
+import com.chit.app.domain.session.domain.exception.SessionParticipantNotFoundException
 import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.model.status.ParticipationStatus
 import com.chit.app.domain.session.domain.repository.SessionRepository
@@ -18,8 +20,7 @@ class ParticipantService(
     
     @Transactional
     fun leaveSession(sessionCode: String, viewerId: Long) {
-        val participant = sessionRepository.findParticipantBy(viewerId, sessionCode)
-                ?: throw IllegalArgumentException("해당 세션 참여 정보를 확인할 수 없습니다. 다시 시도해 주세요.")
+        val participant = sessionRepository.findParticipantBy(viewerId, sessionCode) ?: throw InvalidParticipantException()
         
         participant.leaveContentSession()
         sseAdapter.emitExitEventAsync(participant)
@@ -31,7 +32,7 @@ class ParticipantService(
         require(viewerId != null) { "유효하지 않은 참여자 정보입니다." }
         val participant = sessionRepository.findParticipantBy(viewerId, streamerId = streamerId)
                 ?.apply { leaveContentSession() }
-                ?: throw IllegalArgumentException("해당 세션 참여 정보를 확인할 수 없습니다. 다시 시도해 주세요.")
+                ?: throw SessionParticipantNotFoundException()
         
         sseAdapter.emitKickEventAsync(participant)
     }

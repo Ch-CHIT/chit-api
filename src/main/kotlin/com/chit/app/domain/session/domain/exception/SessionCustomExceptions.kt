@@ -19,3 +19,13 @@ class GameParticipationCodeNotFoundException(
         val errorCode: Int = 43004,
         cause: Throwable? = null
 ) : RuntimeException("요청하신 게임 참여 코드를 찾을 수 없습니다. 세션 상태를 다시 확인해 주세요.", cause)
+
+class SessionParticipantNotFoundException(
+        val errorCode: Int = 43005,
+        cause: Throwable? = null
+) : RuntimeException("해당 세션 참여 정보를 확인할 수 없습니다. 다시 시도해 주세요.", cause)
+
+class InvalidParticipantException(
+        val errorCode: Int = 43006,
+        cause: Throwable? = null
+) : RuntimeException("유효하지 않은 참여자 정보입니다.", cause)
