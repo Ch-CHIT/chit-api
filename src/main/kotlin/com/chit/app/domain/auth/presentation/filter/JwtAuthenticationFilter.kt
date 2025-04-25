@@ -103,6 +103,7 @@ class JwtAuthenticationFilter(
             """
         {
           "status": 401,
+          "code": 40004
           "data": "EXPIRED_TOKEN",
           "message": "액세스 토큰이 만료되었습니다."
         }
@@ -110,4 +111,5 @@ class JwtAuthenticationFilter(
         )
         response.writer.flush()
     }
+    
 }
