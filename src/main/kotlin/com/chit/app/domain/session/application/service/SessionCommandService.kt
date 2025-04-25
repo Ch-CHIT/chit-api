@@ -3,6 +3,7 @@ package com.chit.app.domain.session.application.service
 import com.chit.app.domain.live.application.LiveStreamCommandService
 import com.chit.app.domain.member.application.MemberQueryService
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
+import com.chit.app.domain.session.domain.exception.DuplicateContentsSessionException
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
@@ -36,7 +37,9 @@ class SessionCommandService(
         val liveStream = liveStreamCommandService.saveOrUpdate(streamerId)
         val liveId = liveStream.liveId!!
         
-        check(sessionRepository.notExistsOpenContentsSession(liveId)) { "이미 진행 중인 컨텐츠 세션이 존재합니다. 중복 생성을 할 수 없습니다." }
+        if (!sessionRepository.notExistsOpenContentsSession(liveId)) {
+            throw DuplicateContentsSessionException()
+        }
         
         val createdContentsSession = ContentsSession.create(liveId, streamerId, maxGroupParticipants, gameParticipationCode)
         val contentsSession = sessionRepository.save(createdContentsSession)

@@ -1,10 +1,13 @@
 package com.chit.app.domain.session.application.service
 
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
+import com.chit.app.domain.session.domain.exception.GameParticipationCodeNotFoundException
+import com.chit.app.domain.session.domain.exception.NoOpenContentsSessionException
+import com.chit.app.domain.session.domain.exception.ParticipantNotFoundException
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.repository.SessionRepository
-import com.chit.app.global.common.response.SuccessResponse.PagedResponse
+import com.chit.app.global.response.SuccessResponse.PagedResponse
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,19 +31,14 @@ class SessionQueryService(
     }
     
     fun getGameParticipationCode(sessionCode: String, viewerId: Long): ContentsSessionResponseDto {
-        val gameParticipationCode = sessionRepository.findGameParticipationCodeBy(sessionCode, viewerId)
-                ?: throw IllegalArgumentException("해당 세션에 참가자 정보가 존재하지 않습니다. 다시 확인해 주세요.")
+        val gameParticipationCode = sessionRepository.findGameParticipationCodeBy(sessionCode, viewerId) ?: throw GameParticipationCodeNotFoundException()
         return ContentsSessionResponseDto(gameParticipationCode = gameParticipationCode)
     }
     
-    fun getOpenContentsSession(streamerId: Long): ContentsSession {
-        return sessionRepository.findOpenContentsSessionBy(streamerId = streamerId)
-                ?: throw IllegalArgumentException("현재 진행 중인 시청자 참여 세션이 없습니다. 다시 확인해 주세요.")
-    }
+    fun getOpenContentsSession(streamerId: Long): ContentsSession =
+            sessionRepository.findOpenContentsSessionBy(streamerId = streamerId) ?: throw NoOpenContentsSessionException()
     
-    fun getParticipant(viewerId: Long, sessionId: Long): SessionParticipant {
-        return sessionRepository.findParticipantBy(viewerId, sessionId = sessionId)
-                ?: throw IllegalArgumentException("해당 세션에 유효한 참여자가 존재하지 않습니다.")
-    }
+    fun getParticipant(viewerId: Long, sessionId: Long): SessionParticipant =
+            sessionRepository.findParticipantBy(viewerId, sessionId = sessionId) ?: throw ParticipantNotFoundException()
     
 }
