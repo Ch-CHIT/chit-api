@@ -5,8 +5,8 @@ import com.chit.app.domain.session.application.service.ParticipantService
 import com.chit.app.domain.session.application.service.SessionCommandService
 import com.chit.app.domain.session.application.service.SessionQueryService
 import com.chit.app.domain.session.presentation.dto.ContentsSessionUpsertRequestDto
-import com.chit.app.global.common.response.SuccessResponse.Companion.success
-import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
+import com.chit.app.global.response.SuccessResponse.Companion.success
+import com.chit.app.global.response.SuccessResponse.Companion.successWithData
 import com.chit.app.global.delegate.DetailContentsSessionResponse
 import com.chit.app.global.delegate.EmptyResponse
 import com.chit.app.global.delegate.GameCodeResponse
