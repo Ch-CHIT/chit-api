@@ -1,5 +1,13 @@
 package com.chit.app.domain.auth.infrastructure.client
 
+import com.chit.app.domain.auth.domain.exception.AuthAccessDeniedException
+import com.chit.app.domain.auth.domain.exception.AuthApiPathNotFoundException
+import com.chit.app.domain.auth.domain.exception.AuthChannelFetchException
+import com.chit.app.domain.auth.domain.exception.AuthCodeForbiddenException
+import com.chit.app.domain.auth.domain.exception.AuthTokenRequestException
+import com.chit.app.domain.auth.domain.exception.AuthUnauthorizedException
+import com.chit.app.domain.auth.domain.exception.InvalidAuthCodeStateException
+import com.chit.app.domain.auth.domain.exception.InvalidChannelInfoException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -35,11 +43,11 @@ class ChzzkAuthApiClient(
                         .body(TokenRequest(grantType, clientId, clientSecret, code, state))
                         .retrieve()
                         .body(TokenResponse::class.java)?.content?.accessToken
-                        ?: throw IllegalArgumentException("인증 코드 또는 상태 값이 올바르지 않습니다. 다시 시도해 주세요.")
+                        ?: throw InvalidAuthCodeStateException()
             } catch (e: HttpClientErrorException.Forbidden) {
-                throw IllegalArgumentException("잘못된 인증 코드입니다. 다시 시도해 주세요.", e)
+                throw AuthCodeForbiddenException(cause = e)
             } catch (e: Exception) {
-                throw IllegalStateException("액세스 토큰 발급 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.", e)
+                throw AuthTokenRequestException(cause = e)
             }
     
     fun fetchChzzkChannelInfo(accessToken: String): ChannelInfo.Content =
@@ -50,15 +58,15 @@ class ChzzkAuthApiClient(
                         .header("Authorization", "Bearer $accessToken")
                         .retrieve()
                         .body(ChannelInfo::class.java)?.content
-                        ?: throw IllegalArgumentException("채널 정보를 가져오는 데 실패했습니다. 유효하지 않은 토큰이거나 요청 경로가 잘못되었습니다.")
+                        ?: throw InvalidChannelInfoException()
             } catch (e: HttpClientErrorException.Unauthorized) {
-                throw IllegalArgumentException("잘못된 인증 정보입니다. 다시 로그인해 주세요.", e)
+                throw AuthUnauthorizedException(cause = e)
             } catch (e: HttpClientErrorException.NotFound) {
-                throw IllegalArgumentException("API 경로를 확인해 주세요.", e)
+                throw AuthApiPathNotFoundException(cause = e)
             } catch (e: HttpClientErrorException.Forbidden) {
-                throw IllegalStateException("접근 권한이 없습니다. 요청 권한을 확인해 주세요.", e)
+                throw AuthAccessDeniedException(cause = e)
             } catch (e: Exception) {
-                throw IllegalStateException("채널 정보 조회 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.", e)
+                throw AuthChannelFetchException(cause = e)
             }
 }
 

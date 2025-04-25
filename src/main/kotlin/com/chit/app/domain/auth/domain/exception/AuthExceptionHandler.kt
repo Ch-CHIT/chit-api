@@ -26,6 +26,30 @@ class AuthExceptionHandler {
         return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
     }
     
+    @ExceptionHandler(InvalidAuthCodeStateException::class)
+    fun handleInvalidAuthCodeState(ex: InvalidAuthCodeStateException): ResponseEntity<ErrorResponse> {
+        log.error("InvalidAuthCodeStateException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(AuthTokenRequestException::class)
+    fun handleAuthTokenRequest(ex: AuthTokenRequestException): ResponseEntity<ErrorResponse> {
+        log.error("AuthTokenRequestException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.INTERNAL_SERVER_ERROR, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(AuthCodeForbiddenException::class)
+    fun handleAuthCodeForbidden(ex: AuthCodeForbiddenException): ResponseEntity<ErrorResponse> {
+        log.error("AuthCodeForbiddenException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.FORBIDDEN, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(InvalidChannelInfoException::class)
+    fun handleInvalidChannelInfo(ex: InvalidChannelInfoException): ResponseEntity<ErrorResponse> {
+        log.error("InvalidChannelInfoException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
+    }
+    
     @ExceptionHandler(InvalidTokenException::class)
     fun handleInvalidTokenException(ex: InvalidTokenException): ResponseEntity<ErrorResponse> {
         log.error("InvalidTokenException: {}", ex.message, ex)
@@ -54,6 +78,30 @@ class AuthExceptionHandler {
     fun handleInvalidSignature(ex: InvalidSignatureException): ResponseEntity<ErrorResponse> {
         log.error("InvalidSignatureException: {}", ex.message, ex)
         return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(AuthUnauthorizedException::class)
+    fun handleAuthUnauthorized(ex: AuthUnauthorizedException): ResponseEntity<ErrorResponse> {
+        log.error("AuthUnauthorizedException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.UNAUTHORIZED, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(AuthApiPathNotFoundException::class)
+    fun handleAuthApiPathNotFound(ex: AuthApiPathNotFoundException): ResponseEntity<ErrorResponse> {
+        log.error("AuthApiPathNotFoundException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.NOT_FOUND, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(AuthAccessDeniedException::class)
+    fun handleAuthAccessDenied(ex: AuthAccessDeniedException): ResponseEntity<ErrorResponse> {
+        log.error("AuthAccessDeniedException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.FORBIDDEN, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(AuthChannelFetchException::class)
+    fun handleAuthChannelFetch(ex: AuthChannelFetchException): ResponseEntity<ErrorResponse> {
+        log.error("AuthChannelFetchException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.INTERNAL_SERVER_ERROR, ex.message, ex.errorCode)
     }
     
 }
