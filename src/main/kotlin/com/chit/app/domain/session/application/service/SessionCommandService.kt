@@ -5,6 +5,7 @@ import com.chit.app.domain.member.application.MemberQueryService
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.domain.exception.DuplicateContentsSessionException
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
+import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.repository.SessionRepository
 import com.chit.app.domain.session.domain.service.ParticipantOrderManager
 import com.chit.app.domain.sse.infrastructure.SseAdapter
@@ -53,7 +54,7 @@ class SessionCommandService(
             maxGroupParticipants: Int,
             gameParticipationCode: String?
     ): ContentsSessionResponseDto {
-        val contentsSession = sessionQueryService.getOpenContentsSession(streamerId)
+        val contentsSession = sessionQueryService.getOpenContentsSession(streamerId = streamerId)
         val updatedContentsSession = contentsSession.updateGameSettings(gameParticipationCode, maxGroupParticipants).toResponseDto()
         
         sseAdapter.emitStreamerSessionUpdateEventAsync(streamerId, contentsSession, updatedContentsSession)
@@ -61,7 +62,7 @@ class SessionCommandService(
     }
     
     fun closeContentsSession(streamerId: Long) {
-        val session = sessionQueryService.getOpenContentsSession(streamerId).apply { close() }
+        val session = sessionQueryService.getOpenContentsSession(streamerId = streamerId).apply { close() }
         val sessionCode = session.sessionCode
         
         ParticipantOrderManager.removeParticipantOrderQueue(sessionCode)
@@ -74,7 +75,7 @@ class SessionCommandService(
     fun switchFixedPickStatus(streamerId: Long, viewerId: Long?) {
         val validViewerId = requireNotNull(viewerId) { "유효하지 않은 참여자 정보입니다." }
         
-        val contentsSession = sessionQueryService.getOpenContentsSession(streamerId)
+        val contentsSession = sessionQueryService.getOpenContentsSession(streamerId = streamerId)
         val chzzkNickname = memberQueryService.getMember(memberId = streamerId).channelName
         
         val participant = sessionQueryService.getParticipant(viewerId = validViewerId, sessionId = contentsSession.id!!)
@@ -85,13 +86,16 @@ class SessionCommandService(
     }
     
     fun proceedToNextGroup(streamerId: Long) {
-        val session = sessionQueryService.getOpenContentsSession(streamerId)
+        val session = sessionQueryService.getOpenContentsSession(streamerId = streamerId)
         val participants = sessionRepository.findFirstPartyParticipants(session.id!!, session.maxGroupParticipants)
         participants.forEach { participant -> participant.incrementSessionRound() }
         
         ParticipantOrderManager.rotateFirstNOrdersToNextCycle(session)
         sseAdapter.notifyReorderedParticipants(SseEventType.SESSION_ORDER_UPDATED, session)
     }
+    
+    fun addParticipantToSession(participant: SessionParticipant) =
+            sessionRepository.addParticipant(participant)
     
     private fun ContentsSession.toResponseDto(): ContentsSessionResponseDto {
         return ContentsSessionResponseDto(

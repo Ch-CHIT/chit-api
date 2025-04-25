@@ -19,7 +19,7 @@ class SessionQueryService(
 ) {
     
     fun getContentsSessionWithParticipants(streamerId: Long, pageable: Pageable): ContentsSessionResponseDto {
-        val contentsSession = getOpenContentsSession(streamerId)
+        val contentsSession = getOpenContentsSession(streamerId = streamerId)
         val participants = sessionRepository.findPagedParticipantsBySessionCode(contentsSession.sessionCode, pageable)
         return ContentsSessionResponseDto(
             sessionCode = contentsSession.sessionCode,
@@ -35,10 +35,15 @@ class SessionQueryService(
         return ContentsSessionResponseDto(gameParticipationCode = gameParticipationCode)
     }
     
-    fun getOpenContentsSession(streamerId: Long): ContentsSession =
-            sessionRepository.findOpenContentsSessionBy(streamerId = streamerId) ?: throw NoOpenContentsSessionException()
+    fun getOpenContentsSession(
+            sessionCode: String? = null,
+            streamerId: Long? = null): ContentsSession =
+            sessionRepository.findOpenContentsSessionBy(sessionCode, streamerId) ?: throw NoOpenContentsSessionException()
     
     fun getParticipant(viewerId: Long, sessionId: Long): SessionParticipant =
             sessionRepository.findParticipantBy(viewerId, sessionId = sessionId) ?: throw ParticipantNotFoundException()
+    
+    fun existsParticipantInSession(sessionId: Long, viewerId: Long): Boolean =
+            sessionRepository.existsParticipantInSession(sessionId, viewerId)
     
 }
