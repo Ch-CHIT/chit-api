@@ -1,20 +1,24 @@
 package com.chit.app.domain.session.presentation
 
 import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
+import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.application.service.ParticipantService
 import com.chit.app.domain.session.application.service.SessionCommandService
 import com.chit.app.domain.session.application.service.SessionQueryService
 import com.chit.app.domain.session.presentation.dto.ContentsSessionUpsertRequestDto
+import com.chit.app.global.delegate.EmptyResponse
+import com.chit.app.global.response.SuccessResponse
 import com.chit.app.global.response.SuccessResponse.Companion.success
 import com.chit.app.global.response.SuccessResponse.Companion.successWithData
-import com.chit.app.global.delegate.DetailContentsSessionResponse
-import com.chit.app.global.delegate.EmptyResponse
-import com.chit.app.global.delegate.GameCodeResponse
-import com.chit.app.global.delegate.NewContentsSessionResponse
 import io.swagger.v3.oas.annotations.Parameter
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+
+typealias GameCodeResponse = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
+typealias DetailContentsSessionResponse = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
+typealias NewContentsSessionResponse = ResponseEntity<SuccessResponse<ContentsSessionResponseDto?>>
 
 @RestController
 @RequestMapping("/api/v1/contents/session")
