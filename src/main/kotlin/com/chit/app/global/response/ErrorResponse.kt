@@ -13,7 +13,7 @@ data class ErrorResponse(
 ) {
     companion object {
         fun internalErrorWithMessage(message: String?): ResponseEntity<ErrorResponse> {
-            return failWithMessage(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage = message, code = 500)
+            return failWithMessage(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage = message, code = 50000)
         }
         
         fun failWithMessage(status: HttpStatus, errorMessage: String?, code: Int = 0): ResponseEntity<ErrorResponse> {
