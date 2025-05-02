@@ -1,6 +1,6 @@
 package com.chit.app.domain.session.presentation
 
-import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
+import com.chit.app.global.common.annotation.CurrentMemberId
 import com.chit.app.domain.session.application.dto.ContentsSessionResponseDto
 import com.chit.app.domain.session.application.service.ParticipantService
 import com.chit.app.domain.session.application.service.SessionCommandService

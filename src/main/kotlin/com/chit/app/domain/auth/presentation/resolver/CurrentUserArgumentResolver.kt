@@ -1,7 +1,7 @@
 package com.chit.app.domain.auth.presentation.resolver
 
 import com.chit.app.domain.auth.domain.exception.AuthenticatedUserNotFoundException
-import com.chit.app.domain.auth.presentation.annotation.CurrentMemberId
+import com.chit.app.global.common.annotation.CurrentMemberId
 import org.springframework.core.MethodParameter
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component

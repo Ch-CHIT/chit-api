@@ -1,4 +1,4 @@
-package com.chit.app.domain.auth.presentation.annotation
+package com.chit.app.global.common.annotation
 
 @MustBeDocumented
 @Target(AnnotationTarget.VALUE_PARAMETER)
