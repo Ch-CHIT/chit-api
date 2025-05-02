@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
-@RestControllerAdvice(basePackages = ["com.chit.app.domain.live"])
+@RestControllerAdvice
 class LiveExceptionHandler {
     
     private val log = logger<LiveExceptionHandler>()

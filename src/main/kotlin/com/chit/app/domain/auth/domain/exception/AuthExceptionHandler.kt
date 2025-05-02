@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 
-@RestControllerAdvice(basePackages = ["com.chit.app.domain.auth"])
+@RestControllerAdvice
 class AuthExceptionHandler {
     
     private val log = logger<AuthExceptionHandler>()
