@@ -12,7 +12,7 @@ class LoggingAspect {
     
     private val log = LoggerFactory.getLogger(this::class.java)
     
-    @Around("@annotation(com.chit.app.global.annotation.LogExecutionTime)")
+    @Around("@annotation(com.chit.app.global.common.annotation.LogExecutionTime)")
     fun logExecutionTime(joinPoint: ProceedingJoinPoint): Any? {
         val start = System.currentTimeMillis()
         val result = joinPoint.proceed()

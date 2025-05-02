@@ -1,4 +1,4 @@
-package com.chit.app.global.annotation
+package com.chit.app.global.common.annotation
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
