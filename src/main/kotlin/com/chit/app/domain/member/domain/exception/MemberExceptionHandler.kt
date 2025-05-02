@@ -1,8 +1,8 @@
 package com.chit.app.domain.member.domain.exception
 
 import com.chit.app.global.common.logging.logger
-import com.chit.app.global.response.ErrorResponse
-import com.chit.app.global.response.ErrorResponse.Companion.failWithMessage
+import com.chit.app.global.common.response.ErrorResponse
+import com.chit.app.global.common.response.ErrorResponse.Companion.failWithMessage
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler

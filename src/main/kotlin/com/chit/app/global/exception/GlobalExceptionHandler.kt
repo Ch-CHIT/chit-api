@@ -1,10 +1,10 @@
 package com.chit.app.global.exception
 
 import com.chit.app.global.common.logging.logger
-import com.chit.app.global.response.ErrorResponse
-import com.chit.app.global.response.ErrorResponse.Companion.failWithErrors
-import com.chit.app.global.response.ErrorResponse.Companion.failWithMessage
-import com.chit.app.global.response.ErrorResponse.Companion.internalErrorWithMessage
+import com.chit.app.global.common.response.ErrorResponse
+import com.chit.app.global.common.response.ErrorResponse.Companion.failWithErrors
+import com.chit.app.global.common.response.ErrorResponse.Companion.failWithMessage
+import com.chit.app.global.common.response.ErrorResponse.Companion.internalErrorWithMessage
 import jakarta.validation.ConstraintViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

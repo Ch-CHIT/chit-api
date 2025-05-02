@@ -7,9 +7,9 @@ import com.chit.app.domain.session.application.service.SessionCommandService
 import com.chit.app.domain.session.application.service.SessionQueryService
 import com.chit.app.domain.session.presentation.dto.ContentsSessionUpsertRequestDto
 import com.chit.app.global.delegate.EmptyResponse
-import com.chit.app.global.response.SuccessResponse
-import com.chit.app.global.response.SuccessResponse.Companion.success
-import com.chit.app.global.response.SuccessResponse.Companion.successWithData
+import com.chit.app.global.common.response.SuccessResponse
+import com.chit.app.global.common.response.SuccessResponse.Companion.success
+import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
 import io.swagger.v3.oas.annotations.Parameter
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault

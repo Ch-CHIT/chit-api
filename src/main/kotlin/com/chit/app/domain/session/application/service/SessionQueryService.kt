@@ -7,7 +7,7 @@ import com.chit.app.domain.session.domain.exception.ParticipantNotFoundException
 import com.chit.app.domain.session.domain.model.entity.ContentsSession
 import com.chit.app.domain.session.domain.model.entity.SessionParticipant
 import com.chit.app.domain.session.domain.repository.SessionRepository
-import com.chit.app.global.response.SuccessResponse.PagedResponse
+import com.chit.app.global.common.response.SuccessResponse.PagedResponse
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

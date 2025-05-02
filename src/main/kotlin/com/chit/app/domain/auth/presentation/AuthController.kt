@@ -2,8 +2,8 @@ package com.chit.app.domain.auth.presentation
 
 import com.chit.app.domain.auth.application.AuthService
 import com.chit.app.domain.auth.presentation.dto.LoginRequestDto
-import com.chit.app.global.response.SuccessResponse.Companion.success
-import com.chit.app.global.response.SuccessResponse.Companion.successWithData
+import com.chit.app.global.common.response.SuccessResponse.Companion.success
+import com.chit.app.global.common.response.SuccessResponse.Companion.successWithData
 import com.chit.app.global.delegate.EmptyResponse
 import com.chit.app.global.delegate.MessageResponse
 import com.chit.app.global.util.CookieInfo

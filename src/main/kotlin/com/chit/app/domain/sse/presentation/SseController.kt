@@ -3,7 +3,7 @@ package com.chit.app.domain.sse.presentation
 import com.chit.app.global.common.annotation.CurrentMemberId
 import com.chit.app.domain.session.application.scheduler.SessionHeartbeatScheduler
 import com.chit.app.domain.sse.application.SseSubscribeService
-import com.chit.app.global.response.SuccessResponse.Companion.success
+import com.chit.app.global.common.response.SuccessResponse.Companion.success
 import com.chit.app.global.delegate.EmptyResponse
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping

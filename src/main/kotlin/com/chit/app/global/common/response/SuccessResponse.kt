@@ -1,4 +1,4 @@
-package com.chit.app.global.response
+package com.chit.app.global.common.response
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import org.springframework.data.domain.Page

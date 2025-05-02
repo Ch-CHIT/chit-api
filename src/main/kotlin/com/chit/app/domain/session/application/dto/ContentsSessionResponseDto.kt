@@ -1,7 +1,7 @@
 package com.chit.app.domain.session.application.dto
 
 import com.chit.app.domain.session.domain.model.Participant
-import com.chit.app.global.response.SuccessResponse.PagedResponse
+import com.chit.app.global.common.response.SuccessResponse.PagedResponse
 import com.fasterxml.jackson.annotation.JsonInclude
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
