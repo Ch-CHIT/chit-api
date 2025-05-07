@@ -10,8 +10,8 @@ CREATE TABLE members
     CONSTRAINT pk_members PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX idx_members_channel_id_unique ON members (channel_id);
-CREATE UNIQUE INDEX idx_members_channel_name_unique ON members (channel_name);
+ALTER TABLE members
+    ADD CONSTRAINT unq_members_channel_id UNIQUE (channel_id);
 
 CREATE TABLE live_streams
 (
@@ -32,8 +32,11 @@ CREATE TABLE live_streams
 );
 
 CREATE INDEX idx_live_streams_channel_id ON live_streams (channel_id);
-CREATE INDEX idx_live_streams_streamer_id ON live_streams (streamer_id);
+
 CREATE UNIQUE INDEX idx_live_streams_live_id_unq ON live_streams (live_id);
+
+CREATE INDEX idx_live_streams_streamer_id ON live_streams (streamer_id);
+
 
 CREATE TABLE contents_sessions
 (
@@ -51,7 +54,9 @@ CREATE TABLE contents_sessions
 );
 
 CREATE INDEX idx_contents_session_code ON contents_sessions (session_code);
+
 CREATE INDEX idx_contents_sessions_live_id ON contents_sessions (live_id);
+
 CREATE INDEX idx_contents_sessions_streamer_id ON contents_sessions (streamer_id);
 
 CREATE TABLE session_participant
@@ -60,14 +65,16 @@ CREATE TABLE session_participant
     created_at          TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
     updated_at          TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
     contents_session_id BIGINT                                  NOT NULL,
-    participant_id      BIGINT                                  NOT NULL,
+    viewer_id           BIGINT                                  NOT NULL,
     game_nickname       VARCHAR(255)                            NOT NULL,
     status              VARCHAR(255)                            NOT NULL,
     fixed_pick          BOOLEAN                                 NOT NULL,
     fixed_pick_time     TIMESTAMP WITHOUT TIME ZONE,
+    session_round       INTEGER                                 NOT NULL,
     CONSTRAINT pk_session_participant PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX idx_participant_session_unique ON session_participant (participant_id, contents_session_id);
+CREATE INDEX idx_participant_session ON session_participant (viewer_id, contents_session_id);
+
 ALTER TABLE session_participant
     ADD CONSTRAINT FK_SESSION_PARTICIPANT_ON_CONTENTS_SESSION FOREIGN KEY (contents_session_id) REFERENCES contents_sessions (id);
