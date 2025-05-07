@@ -58,7 +58,7 @@ class SecurityConfig(
         return UrlBasedCorsConfigurationSource().apply {
             registerCorsConfiguration("/**", CorsConfiguration().apply {
                 allowedOrigins = listOf(this@SecurityConfig.corsUrl)
-                allowedMethods = listOf("GET", "POST", "PUT", "DELETE")
+                allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 allowedHeaders = listOf("X-Requested-With", "Content-Type", "Authorization", "X-XSRF-token")
                 allowCredentials = true
                 maxAge = 3600L
