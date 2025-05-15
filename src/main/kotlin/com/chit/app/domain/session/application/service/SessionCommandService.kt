@@ -35,17 +35,24 @@ class SessionCommandService(
             gameParticipationCode: String?,
             maxGroupParticipants: Int
     ): ContentsSessionResponseDto {
+        log.info(
+            "콘텐츠 세션 생성 요청: streamerId={}, gameParticipationCode={}, maxGroupParticipants={}",
+            streamerId,
+            gameParticipationCode,
+            maxGroupParticipants
+        )
         val liveStream = liveStreamCommandService.saveOrUpdate(streamerId)
         val liveId = liveStream.liveId!!
         
         if (!sessionRepository.notExistsOpenContentsSession(liveId)) {
+            log.info("이미 열린 세션이 존재함: liveId={}", liveId)
             throw DuplicateContentsSessionException()
         }
         
         val createdContentsSession = ContentsSession.create(liveId, streamerId, maxGroupParticipants, gameParticipationCode)
         val contentsSession = sessionRepository.save(createdContentsSession)
+        log.info("콘텐츠 세션 저장 완료: sessionCode={}, streamerId={}", contentsSession.sessionCode, streamerId)
         
-        log.info("컨텐츠 세션 생성 완료: 세션코드: ${contentsSession.sessionCode}, 스트리머ID: $streamerId, 채널ID: $liveStream.channelId")
         return contentsSession.toResponseDto()
     }
     
@@ -54,25 +61,38 @@ class SessionCommandService(
             maxGroupParticipants: Int,
             gameParticipationCode: String?
     ): ContentsSessionResponseDto {
+        log.info(
+            "세션 설정 변경 요청: streamerId={}, maxGroupParticipants={}, gameParticipationCode={}",
+            streamerId,
+            maxGroupParticipants,
+            gameParticipationCode
+        )
         val contentsSession = sessionQueryService.getOpenContentsSession(streamerId = streamerId)
+        log.info("변경 대상 세션 코드: {}", contentsSession.sessionCode)
         val updatedContentsSession = contentsSession.updateGameSettings(gameParticipationCode, maxGroupParticipants).toResponseDto()
         
         sseAdapter.emitStreamerSessionUpdateEventAsync(streamerId, contentsSession, updatedContentsSession)
+        log.info("세션 설정 변경 완료: sessionCode={}", updatedContentsSession.sessionCode)
         return updatedContentsSession
     }
     
     fun closeContentsSession(streamerId: Long) {
+        log.info("세션 닫기 시도: streamerId={}", streamerId)
         val session = sessionQueryService.getOpenContentsSession(streamerId = streamerId).apply { close() }
         val sessionCode = session.sessionCode
+        log.info("닫는 세션 코드: {}", sessionCode)
         
         ParticipantOrderManager.removeParticipantOrderQueue(sessionCode)
         sessionRepository.setAllParticipantsToLeft(sessionCode)
+        log.info("참여자 상태 처리 완료: sessionCode={}", sessionCode)
         
         sseAdapter.broadcastEvent(sessionCode, SseEventType.CLOSED_SESSION, null)
         sseEmitterManager.unsubscribeAll(sessionCode)
+        log.info("SSE 브로드캐스트 완료 및 구독 해제: sessionCode={}", sessionCode)
     }
     
     fun switchFixedPickStatus(streamerId: Long, viewerId: Long?) {
+        log.info("고정픽 상태 변경 시도: streamerId={}, viewerId={}", streamerId, viewerId)
         val validViewerId = requireNotNull(viewerId) { "유효하지 않은 참여자 정보입니다." }
         
         val contentsSession = sessionQueryService.getOpenContentsSession(streamerId = streamerId)
@@ -83,15 +103,19 @@ class SessionCommandService(
         
         ParticipantOrderManager.addOrUpdateParticipantOrder(contentsSession.sessionCode, participant, validViewerId, chzzkNickname)
         sseAdapter.emitParticipantFixedEventAsync(participant)
+        log.info("고정픽 상태 변경 완료: streamerId={}, viewerId={}, 닉네임={}", streamerId, validViewerId, chzzkNickname)
     }
     
     fun proceedToNextGroup(streamerId: Long) {
         val session = sessionQueryService.getOpenContentsSession(streamerId = streamerId)
+        log.info("다음 그룹 진행 요청: sessionCode={}", session.sessionCode)
         val participants = sessionRepository.findFirstPartyParticipants(session.id!!, session.maxGroupParticipants)
+        log.info("참가자 수: {}", participants.size)
         participants.forEach { participant -> participant.incrementSessionRound() }
         
         ParticipantOrderManager.rotateFirstNOrdersToNextCycle(session)
         sseAdapter.notifyReorderedParticipants(SseEventType.SESSION_ORDER_UPDATED, session)
+        log.info("그룹 회전 처리 완료: sessionCode={}", session.sessionCode)
     }
     
     fun addParticipantToSession(participant: SessionParticipant) =
