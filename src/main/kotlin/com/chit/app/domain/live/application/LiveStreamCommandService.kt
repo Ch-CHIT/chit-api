@@ -6,6 +6,7 @@ import com.chit.app.domain.live.domain.repository.LiveStreamRepository
 import com.chit.app.domain.live.infrastructure.ChzzkLiveApiClient
 import com.chit.app.domain.live.infrastructure.response.LiveDetailResponse
 import com.chit.app.domain.member.application.MemberQueryService
+import com.chit.app.global.common.logging.logger
 import org.springframework.stereotype.Service
 
 @Service
@@ -15,32 +16,43 @@ class LiveStreamCommandService(
         private val liveStreamRepository: LiveStreamRepository,
 ) {
     
-    /**
-     * 라이브 스트림 - 저장 또는 업데이트 처리 메서드
-     *
-     * 이 메서드는 주어진 스트리머 ID에 대해, 해당 스트리머의 채널 ID를 조회한 후,
-     * 외부 API(chzzkLiveApiClient)를 통해 최신 라이브 스트림 상세 정보를 가져옵니다.
-     * 이어서, 해당 채널에 기존 라이브 스트림 정보가 있는지 확인합니다.
-     *
-     * - 기존 라이브 스트림 정보가 없거나, 새로 가져온 라이브 상세 정보의 liveId가 기존의 liveId와 다른 경우:
-     *   - 기존의 라이브 스트림이 존재한다면, 해당 스트림의 상태를 [LiveStatus.CLOSE]로 업데이트하고,
-     *     새로운 라이브 스트림을 생성합니다.
-     * - 그렇지 않으면(즉, 최신 정보가 동일한 경우) 기존 라이브 스트림 정보를 업데이트합니다.
-     *
-     * @param streamerId 스트리머의 고유 ID.
-     * @return 저장 또는 업데이트된 [LiveStream] 객체.
-     */
+    private val log = logger<LiveStreamCommandService>()
+    
     fun saveOrUpdate(streamerId: Long): LiveStream {
+        // 1. 채널 ID 조회
         val channelId = memberQueryService.getMember(memberId = streamerId).channelId
-        val fetchedLiveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId)
-        val latestLiveStream = liveStreamRepository.findLatestLiveStreamBy(channelId = channelId)
+        log.info("채널 ID 조회 완료: streamerId={}, channelId={}", streamerId, channelId)
         
-        // 라이브 스트림 정보가 없거나, 가져온 liveId와 기존 liveId가 다르면 새로운 스트림 생성
-        if (latestLiveStream == null || fetchedLiveDetail.liveId != latestLiveStream.liveId) {
-            latestLiveStream?.liveStatus = LiveStatus.CLOSE
-            return create(streamerId, channelId, fetchedLiveDetail)
+        val liveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId)
+        log.info("라이브 정보 조회 완료: liveId={}", liveDetail.liveId)
+        
+        val latest = liveStreamRepository.findLatestLiveStreamBy(channelId = channelId)
+        if (latest == null) {
+            log.info("이전 라이브 스트림 없음: channelId={}", channelId)
         } else {
-            return update(latestLiveStream, fetchedLiveDetail)
+            log.info("이전 라이브 스트림 있음: liveId={}", latest.liveId)
+        }
+        
+        return when {
+            // 2. 라이브 정보 자체가 없다면 새로 생성
+            latest == null                     -> {
+                log.info("이전 기록이 없어 새로운 LiveStream 생성")
+                create(streamerId, channelId, liveDetail)
+            }
+            
+            // 3. liveId가 다르면 이전 스트림 종료 후 새로 생성
+            liveDetail.liveId != latest.liveId -> {
+                log.info("liveId 변경 감지: 이전={}, 신규={}, 이전 스트림 종료 후 새로 생성", latest.liveId, liveDetail.liveId)
+                latest.liveStatus = LiveStatus.CLOSE
+                liveStreamRepository.save(latest)
+                create(streamerId, channelId, liveDetail)
+            }
+            
+            // 4. 그 외엔 기존 스트림 업데이트
+            else                               -> {
+                log.info("동일 liveId, 기존 스트림 정보 업데이트")
+                update(latest, liveDetail)
+            }
         }
     }
     
