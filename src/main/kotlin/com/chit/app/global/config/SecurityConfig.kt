@@ -1,12 +1,13 @@
 package com.chit.app.global.config
 
+import com.chit.app.domain.auth.infrastructure.properties.JwtFilterProperties
 import com.chit.app.domain.auth.infrastructure.security.JwtAuthenticationEntryPoint
 import com.chit.app.domain.auth.infrastructure.security.TokenProvider
 import com.chit.app.domain.auth.presentation.filter.JwtAuthenticationFilter
-import com.chit.app.domain.auth.infrastructure.properties.JwtFilterProperties
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
+import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -14,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
-import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
@@ -22,16 +22,14 @@ class SecurityConfig(
         private val tokenProvider: TokenProvider,
         private val properties: JwtFilterProperties,
         private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint,
-        
-        @Value("\${cors.url}") private val corsUrl: String
 ) {
     
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain = http
+            .cors(Customizer.withDefaults())
             .csrf { it.disable() }
             .formLogin { it.disable() }
             .httpBasic { it.disable() }
-            .cors { it.configurationSource(corsConfigurationSource()) }
             .headers { it.frameOptions { frame -> frame.sameOrigin() } }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .exceptionHandling { it.authenticationEntryPoint(jwtAuthenticationEntryPoint) }
@@ -53,18 +51,18 @@ class SecurityConfig(
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .build()
     
+    @Profile("dev")
     @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
+    fun corsConfigurationSource(): UrlBasedCorsConfigurationSource {
         val config = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf(this@SecurityConfig.corsUrl)
-            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            allowedHeaders = listOf("X-Requested-With", "Content-Type", "Authorization", "X-XSRF-TOKEN")
+            allowedOrigins = listOf("http://localhost:3000")
+            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+            allowedHeaders = listOf("*")
             allowCredentials = true
-            maxAge = 3600L
-            exposedHeaders = listOf("Authorization")
         }
-        
-        return UrlBasedCorsConfigurationSource().apply { registerCorsConfiguration("/**", config) }
+        return UrlBasedCorsConfigurationSource().also {
+            it.registerCorsConfiguration("/**", config)
+        }
     }
     
     @Bean
