@@ -25,13 +25,17 @@ class AuthService(
     
     @Transactional
     fun login(code: String, state: String): TokenInfo {
+        log.info("[요청] 로그인 요청 수신 (code={}, state={})", code, state)
         val chzzkAccessToken = chzzkAuthApiClient.fetchChzzkAccessToken(code, state)
         val channel = chzzkAuthApiClient.fetchChzzkChannelInfo(chzzkAccessToken)
                 .let { (channelId, channelName, nickname) -> Channel(channelId, channelName, nickname) }
-        
         return memberRepository.findBy(channelId = channel.id)
+                ?.also { log.info("[성공] 기존 회원 로그인 완료 (memberId={}, channelId={})", it.id, it.channelId) }
                 ?.createTokenInfo(chzzkAccessToken)
-                ?: register(channel, chzzkAccessToken)
+                ?: run {
+                    log.info("[진행] 신규 회원 등록 진행 (channelId={})", channel.id)
+                    register(channel, chzzkAccessToken)
+                }
     }
     
     private fun register(channel: Channel, chzzkAccessToken: String): TokenInfo =
@@ -48,20 +52,20 @@ class AuthService(
         val memberId = try {
             tokenProvider.getMemberIdFromToken(requestRefreshToken)
         } catch (e: Exception) {
-            log.warn("토큰에서 memberId 추출 실패: ${e.message}")
+            log.warn("[실패] 리프레시 토큰에서 회원 ID 추출 실패 (refreshToken=****) [부가정보: ${e.message}]")
             throw InvalidTokenException(cause = e)
         }
         
         val member = memberRepository.findBy(memberId = memberId) ?: throw MemberNotFoundException()
-        log.info { "회원 인증 성공. memberId: $memberId, channel: ${member.channelName}" }
+        log.info("[성공] 리프레시 토큰 인증 성공 (memberId=$memberId, channelName=${member.channelName})")
         
         return try {
             val newAccessToken = tokenProvider.createAccessToken(member.id, member.channelId, member.channelName)
             val newRefreshToken = tokenProvider.createRefreshToken(member.id)
+            log.info("[성공] 액세스/리프레시 토큰 재발급 완료 (memberId=$memberId)")
             TokenInfo(accessToken = newAccessToken, refreshToken = newRefreshToken)
-                    .also { log.info { "새로운 토큰 발급 완료. memberId: $memberId" } }
         } catch (e: Exception) {
-            log.error("토큰 발급 중 오류 발생: ${e.message}", e)
+            log.error("[실패] 토큰 재발급 중 예외 발생 (memberId=$memberId) [부가정보: ${e.message}]", e)
             throw TokenReissueException()
         }
     }

@@ -43,7 +43,7 @@ class SseAdapter(
     fun emitStreamerSessionUpdateEventAsync(streamerId: Long, contentsSession: ContentsSession, updatedContentsSession: ContentsSessionResponseDto) {
         // 1. 스트리머에게 업데이트된 세션 이벤트 전송
         sendEvent(streamerId, updatedContentsSession.sessionCode!!, SseEventType.UPDATED_SESSION, updatedContentsSession)
-        log.info("스트리머($streamerId)에게 세션 업데이트 이벤트 전송 션료")
+        log.info("[성공] 스트리머에게 세션 업데이트 이벤트 전송 완료 (streamerId={}, sessionCode={})", streamerId, updatedContentsSession.sessionCode)
         
         // 2. 참여자 순서 변경 이벤트 브로드캐스트
         notifyReorderedParticipants(SseEventType.UPDATED_SESSION, contentsSession)
@@ -56,7 +56,7 @@ class SseAdapter(
         // 1. 스트리머에게 참여자 고정 이벤트 전송
         val order = ParticipantOrderManager.getParticipantRank(contentsSession.sessionCode, participant.viewerId)
         notifyStreamerOfParticipantEvent(SseEventType.PARTICIPANT_FIXED_SESSION, participant, order)
-        log.info("스트리머(${contentsSession.streamerId})에게 'PARTICIPANT_FIXED_SESSION' 이벤트 알림 전송 완료 (참여자: $participant.viewerId)")
+        log.info("[성공] 스트리머에게 고정픽 이벤트 알림 전송 완료 (streamerId={}, viewerId={})", contentsSession.streamerId, participant.viewerId)
         
         // 2. 참여자 순서 변경 이벤트 브로드캐스트
         notifyReorderedParticipants(SseEventType.SESSION_ORDER_UPDATED, contentsSession)
@@ -69,12 +69,12 @@ class SseAdapter(
         // 1. 대상 참여자(시청자)에게 퇴장 이벤트 전송
         sendEvent(participant.viewerId, contentsSession.sessionCode, SseEventType.KICKED_SESSION, null)
         sseEmitterManager.unsubscribe(contentsSession.sessionCode, participant.viewerId)
-        log.info("회원($participant.viewerId)에게 'KICKED_SESSION' 이벤트 전송 완료 (세션코드: ${contentsSession.sessionCode})")
+        log.info("[성공] 참여자 강퇴 이벤트 전송 완료 (viewerId={}, sessionCode={})", participant.viewerId, contentsSession.sessionCode)
         
         // 2. 스트리머에게 참여자 퇴장 이벤트 전송
         val order = ParticipantOrderManager.removeParticipantOrderAndGetRank(contentsSession.sessionCode, participant.viewerId)
         notifyStreamerOfParticipantEvent(SseEventType.PARTICIPANT_KICKED_SESSION, participant, order)
-        log.info("스트리머(${contentsSession.streamerId})에게 'PARTICIPANT_KICKED_SESSION' 이벤트 알림 전송 완료 (참여자: $participant.viewerId)")
+        log.info("[성공] 스트리머에게 강퇴 이벤트 알림 전송 완료 (streamerId={}, viewerId={})", contentsSession.streamerId, participant.viewerId)
         
         // 3. 참여자 순서 변경 이벤트 브로드캐스트
         notifyReorderedParticipants(SseEventType.SESSION_ORDER_UPDATED, contentsSession)
@@ -88,15 +88,15 @@ class SseAdapter(
         
         // 1. 참여자에게 세션 퇴장 이벤트 전송 & SSE 연결 해제
         sendEvent(viewerId, sessionCode, SseEventType.LEFT_SESSION, null)
-        log.info("회원($viewerId)에게 'LEFT_SESSION' 이벤트 전송 완료 (세션코드: $sessionCode)")
+        log.info("[성공] 참여자 퇴장 이벤트 전송 완료 (viewerId={}, sessionCode={})", viewerId, sessionCode)
         
         sseEmitterManager.unsubscribe(sessionCode, viewerId)
-        log.info("회원($viewerId)의 SSE 연결 해제 완료 (세션코드: $sessionCode)")
+        log.info("[진행] 참여자 SSE 연결 해제 완료 (viewerId={}, sessionCode={})", viewerId, sessionCode)
         
         // 2. 스트리머에게 참여자 퇴장 이벤트 알림 & 참여자 순서 변경 브로드캐스트
         val order = ParticipantOrderManager.removeParticipantOrderAndGetRank(contentsSession.sessionCode, participant.viewerId)
         notifyStreamerOfParticipantEvent(SseEventType.PARTICIPANT_LEFT_SESSION, participant, order)
-        log.info("스트리머(${contentsSession.streamerId})에게 'PARTICIPANT_LEFT_SESSION' 이벤트 알림 전송 완료 (참여자: $viewerId)")
+        log.info("[성공] 스트리머에게 참여자 퇴장 이벤트 전송 완료 (streamerId={}, viewerId={})", contentsSession.streamerId, viewerId)
         
         notifyReorderedParticipants(SseEventType.SESSION_ORDER_UPDATED, contentsSession)
     }
@@ -165,7 +165,7 @@ class SseAdapter(
                         )
                     )
                 )
-                log.info("스트리머(${contentsSession.streamerId})에게 참여자(${viewerId})의 이벤트 '${eventType.name}' 전송 완료")
+                log.info("[성공] 스트리머에게 참여자 이벤트 전송 완료 (streamerId={}, viewerId={}, eventType={})", contentsSession.streamerId, viewerId, eventType.name)
             }, taskExecutor)
         }
     }
@@ -173,9 +173,9 @@ class SseAdapter(
     private fun dispatchEvent(emitter: SseEmitter, eventType: SseEventType, data: Any?, memberId: Long, sessionCode: String) {
         try {
             emitter.send(eventType, SseData(message = eventType.message, data = data))
-            log.info("회원($memberId)에게 이벤트 '${eventType.name}' 전송 성공 (세션코드: $sessionCode)")
+            log.info("[성공] SSE 이벤트 전송 완료 (memberId={}, sessionCode={}, eventType={})", memberId, sessionCode, eventType.name)
         } catch (e: Exception) {
-            log.error("회원($memberId)에게 이벤트 전송 실패 (세션코드: $sessionCode): ${e.message}", e)
+            log.error("[실패] SSE 이벤트 전송 실패 (memberId={}, sessionCode={}, eventType={}) [부가정보: {}]", memberId, sessionCode, eventType.name, e.message, e)
             emitter.complete()
         }
     }

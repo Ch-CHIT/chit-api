@@ -46,10 +46,10 @@ class SseSubscribeService(
                 if (isParticipantNotJoined(contentsSession.id!!, viewerId)) {
                     val newParticipant = SessionParticipant.create(viewerId, gameNickname, contentsSession)
                     newParticipant.joinContentSession()
-                    log.info("참여자 등록 완료 - 시청자ID: $viewerId, 세션코드: $sessionCode")
+                    log.info("[성공] 시청자 세션 참여 완료 (viewerId={}, sessionCode={})", viewerId, sessionCode)
                     newParticipant
                 } else {
-                    log.info("이미 참여 중인 시청자입니다 : 시청자ID: $viewerId, 세션코드: $sessionCode")
+                    log.info("[진행] 이미 참여 중인 시청자 (viewerId={}, sessionCode={})", viewerId, sessionCode)
                     sessionQueryService.getParticipant(viewerId = viewerId, sessionId = contentsSession.id!!)
                 }
         

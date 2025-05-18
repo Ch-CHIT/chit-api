@@ -23,6 +23,7 @@ class ChzzkLiveApiClient(
             .build()
     
     fun fetchChzzkLiveDetail(channelId: String): LiveDetailResponse.Content {
+        log.info("[요청] 라이브 상세 정보 요청 (channelId={})", channelId)
         val liveDetailResponse: LiveDetailResponse? = try {
             restClient.get()
                     .uri("$chzzkLiveDetailApiUrl/$channelId/live-detail")
@@ -35,7 +36,13 @@ class ChzzkLiveApiClient(
             log.error("라이브 정보 불러오기 실패: channelId=$channelId", e)
             throw LiveFetchException(cause = e)
         }
-        return liveDetailResponse?.content ?: throw LiveNotFoundException()
+        if (liveDetailResponse?.content == null) {
+            log.warn("[실패] 라이브 상세 정보 없음 (channelId={})", channelId)
+            throw LiveNotFoundException()
+        }
+        
+        log.info("[성공] 라이브 상세 정보 응답 수신 완료 (channelId={})", channelId)
+        return liveDetailResponse.content
     }
     
 }

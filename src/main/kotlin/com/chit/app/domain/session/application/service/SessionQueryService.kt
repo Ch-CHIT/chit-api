@@ -23,9 +23,9 @@ class SessionQueryService(
     
     fun getContentsSessionWithParticipants(streamerId: Long, pageable: Pageable): ContentsSessionResponseDto {
         val contentsSession = getOpenContentsSession(streamerId = streamerId)
+        log.info("[성공] 세션 및 참여자 목록 조회 시작 (sessionCode={})", contentsSession.sessionCode)
         val participants = sessionRepository.findPagedParticipantsBySessionCode(contentsSession.sessionCode, pageable)
-        log.info("참가자 페이지 결과: count={}", participants.totalElements)
-        log.info("세션 조회 완료: sessionCode={}", contentsSession.sessionCode)
+        log.info("[성공] 참여자 페이지 조회 완료 (sessionCode={}, count={})", contentsSession.sessionCode, participants.totalElements)
         return ContentsSessionResponseDto(
             sessionCode = contentsSession.sessionCode,
             gameParticipationCode = contentsSession.gameParticipationCode,
@@ -38,20 +38,37 @@ class SessionQueryService(
     fun getGameParticipationCode(sessionCode: String, viewerId: Long): ContentsSessionResponseDto {
         val gameParticipationCode = sessionRepository.findGameParticipationCodeBy(sessionCode, viewerId)
                 ?: run {
-                    log.info("게임 참여 코드가 존재하지 않음: sessionCode={}, viewerId={}", sessionCode, viewerId)
+                    log.warn("[실패] 게임 참여 코드 조회 실패 - 존재하지 않음 (sessionCode={}, viewerId={})", sessionCode, viewerId)
                     throw GameParticipationCodeNotFoundException()
                 }
-        log.info("게임 참여 코드 조회 성공: code={}", gameParticipationCode)
+        log.info("[성공] 게임 참여 코드 조회 완료 (sessionCode={}, viewerId={}, code={})", sessionCode, viewerId, gameParticipationCode)
         return ContentsSessionResponseDto(gameParticipationCode = gameParticipationCode)
     }
     
-    fun getOpenContentsSession(sessionCode: String? = null, streamerId: Long? = null): ContentsSession =
-            sessionRepository.findOpenContentsSessionBy(sessionCode, streamerId) ?: throw NoOpenContentsSessionException()
+    fun getOpenContentsSession(sessionCode: String? = null, streamerId: Long? = null): ContentsSession {
+        val session = sessionRepository.findOpenContentsSessionBy(sessionCode, streamerId)
+        return session?.also {
+            log.info("[성공] 오픈 세션 조회 완료 (sessionCode={}, streamerId={})", it.sessionCode, streamerId)
+        } ?: run {
+            log.warn("[실패] 오픈 세션 조회 실패 - 세션 없음 (sessionCode={}, streamerId={})", sessionCode, streamerId)
+            throw NoOpenContentsSessionException()
+        }
+    }
     
-    fun getParticipant(viewerId: Long, sessionId: Long): SessionParticipant =
-            sessionRepository.findParticipantBy(viewerId, sessionId = sessionId) ?: throw ParticipantNotFoundException()
+    fun getParticipant(viewerId: Long, sessionId: Long): SessionParticipant {
+        val participant = sessionRepository.findParticipantBy(viewerId, sessionId = sessionId)
+        return participant?.also {
+            log.info("[성공] 세션 참여자 조회 완료 (participantId={}, viewerId={}, sessionId={})", it.id, viewerId, sessionId)
+        } ?: run {
+            log.warn("[실패] 세션 참여자 조회 실패 - 참여자 없음 (viewerId={}, sessionId={})", viewerId, sessionId)
+            throw ParticipantNotFoundException()
+        }
+    }
     
-    fun existsParticipantInSession(sessionId: Long, viewerId: Long): Boolean =
-            sessionRepository.existsParticipantInSession(sessionId, viewerId)
+    fun existsParticipantInSession(sessionId: Long, viewerId: Long): Boolean {
+        val exists = sessionRepository.existsParticipantInSession(sessionId, viewerId)
+        log.info("[검증] 세션 내 참여자 존재 여부 확인 (sessionId={}, viewerId={}, exists={})", sessionId, viewerId, exists)
+        return exists
+    }
     
 }

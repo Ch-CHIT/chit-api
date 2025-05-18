@@ -48,7 +48,7 @@ class LiveStreamScheduler(
             page++
         }
         
-        log.debug("LiveStream 업데이트 완료: 총 {}개 처리됨.", totalUpdated)
+        log.info("[성공] 라이브 스트림 상태 동기화 스케줄러 완료 (totalUpdated={})", totalUpdated)
     }
     
 }

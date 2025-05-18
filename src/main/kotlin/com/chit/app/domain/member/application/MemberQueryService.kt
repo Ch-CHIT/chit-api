@@ -17,7 +17,7 @@ class MemberQueryService(
     @Transactional(readOnly = true)
     fun getMember(memberId: Long): Member =
             memberRepository.findBy(memberId = memberId) ?: run {
-                log.error("회원 ID $memberId 에 해당하는 회원을 찾을 수 없습니다.")
+                log.error("[실패] 회원 조회 실패 - 존재하지 않는 회원 (memberId={})", memberId)
                 throw MemberNotFoundException()
             }
 }

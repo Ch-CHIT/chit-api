@@ -6,7 +6,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
-class SseEmitterManager{
+class SseEmitterManager {
     
     private val log = logger<SseEmitterManager>()
     private val memberIdToSessionCode = ConcurrentHashMap<Long, String>()
@@ -19,13 +19,14 @@ class SseEmitterManager{
         memberIdToSessionCode[memberId]?.let { existingSessionCode ->
             if (existingSessionCode != sessionCode) {
                 emitters[existingSessionCode]?.remove(memberId)?.complete()
-                log.info("기존 SSE 연결 종료됨. (회원 ID: $memberId, 세션코드: $existingSessionCode)")
+                log.info("[진행] 기존 SSE 연결 종료 (memberId={}, sessionCode={})", memberId, existingSessionCode)
             }
         }
         
         val emitter = createNewEmitter(memberId, sessionCode)
         emitters.getOrPut(sessionCode) { ConcurrentHashMap() }[memberId] = emitter
         memberIdToSessionCode[memberId] = sessionCode
+        log.info("[성공] SSE 구독 완료 (memberId={}, sessionCode={})", memberId, sessionCode)
         return emitter
     }
     

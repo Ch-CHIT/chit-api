@@ -19,13 +19,14 @@ class LiveStreamSyncService(
     
     @Transactional
     fun syncLiveStreamStatus(liveStream: LiveStream): LiveStream? {
+        log.info("[요청] 라이브 스트림 동기화 요청 (channelId={}, currentLiveId={})", liveStream.channelId, liveStream.liveId)
         return chzzkLiveApiClient.fetchChzzkLiveDetail(liveStream.channelId!!).let { fetchLiveDetail ->
             if (liveStream.liveId != fetchLiveDetail.liveId) {
                 liveStream.apply {
                     liveStatus = LiveStatus.CLOSE
                     closedDate = now()
                 }
-                log.debug("라이브 스트림 종료 처리 - 채널 ID: {}, 기존 라이브 ID: {}", liveStream.channelId, liveStream.liveId)
+                log.info("[진행] 라이브 스트림 종료 처리 (channelId={}, previousLiveId={})", liveStream.channelId, liveStream.liveId)
             } else {
                 val (_, liveTitle, status, categoryType, liveCategory, liveCategoryValue, openDate, closeDate) = fetchLiveDetail
                 liveStream.update(
@@ -37,7 +38,7 @@ class LiveStreamSyncService(
                     openDate = openDate,
                     closeDate = closeDate
                 )
-                log.debug("라이브 스트림 정보 동기화 완료 - 채널 ID: {}, 라이브 정보: {}", liveStream.channelId, fetchLiveDetail.toString())
+                log.info("[성공] 라이브 스트림 정보 동기화 완료 (channelId={}, liveTitle={}, status={})", liveStream.channelId, liveTitle, status)
             }
             
             liveStreamRepository.save(liveStream)

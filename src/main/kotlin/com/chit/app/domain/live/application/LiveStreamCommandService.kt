@@ -21,28 +21,28 @@ class LiveStreamCommandService(
     fun saveOrUpdate(streamerId: Long): LiveStream {
         // 1. 채널 ID 조회
         val channelId = memberQueryService.getMember(memberId = streamerId).channelId
-        log.info("채널 ID 조회 완료: streamerId={}, channelId={}", streamerId, channelId)
+        log.info("[성공] 채널 ID 조회 완료 (streamerId={}, channelId={})", streamerId, channelId)
         
         val liveDetail = chzzkLiveApiClient.fetchChzzkLiveDetail(channelId)
-        log.info("라이브 정보 조회 완료: liveId={}", liveDetail.liveId)
+        log.info("[성공] 라이브 정보 조회 완료 (liveId={})", liveDetail.liveId)
         
         val latest = liveStreamRepository.findLatestLiveStreamBy(channelId = channelId)
         if (latest == null) {
-            log.info("이전 라이브 스트림 없음: channelId={}", channelId)
+            log.info("[진행] 이전 라이브 스트림 없음 (channelId={})", channelId)
         } else {
-            log.info("이전 라이브 스트림 있음: liveId={}", latest.liveId)
+            log.info("[진행] 이전 라이브 스트림 있음 (liveId={})", latest.liveId)
         }
         
         return when {
             // 2. 라이브 정보 자체가 없다면 새로 생성
             latest == null                     -> {
-                log.info("이전 기록이 없어 새로운 LiveStream 생성")
+                log.info("[진행] 기존 기록 없음 - 새 LiveStream 생성")
                 create(streamerId, channelId, liveDetail)
             }
             
             // 3. liveId가 다르면 이전 스트림 종료 후 새로 생성
             liveDetail.liveId != latest.liveId -> {
-                log.info("liveId 변경 감지: 이전={}, 신규={}, 이전 스트림 종료 후 새로 생성", latest.liveId, liveDetail.liveId)
+                log.info("[진행] liveId 변경 감지 - 이전={}, 신규={} → 기존 스트림 종료 및 새로 생성", latest.liveId, liveDetail.liveId)
                 latest.liveStatus = LiveStatus.CLOSE
                 liveStreamRepository.save(latest)
                 create(streamerId, channelId, liveDetail)
@@ -50,7 +50,7 @@ class LiveStreamCommandService(
             
             // 4. 그 외엔 기존 스트림 업데이트
             else                               -> {
-                log.info("동일 liveId, 기존 스트림 정보 업데이트")
+                log.info("[진행] 동일 liveId - 기존 스트림 정보 업데이트")
                 update(latest, liveDetail)
             }
         }
