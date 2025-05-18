@@ -37,4 +37,16 @@ class SessionExceptionHandler {
         return failWithMessage(HttpStatus.NOT_FOUND, ex.message, ex.errorCode)
     }
     
+    @ExceptionHandler(SessionParticipantNotFoundException::class)
+    fun handleSessionParticipantNotFound(ex: SessionParticipantNotFoundException): ResponseEntity<ErrorResponse> {
+        log.error("SessionParticipantNotFoundException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.NOT_FOUND, ex.message, ex.errorCode)
+    }
+    
+    @ExceptionHandler(InvalidParticipantException::class)
+    fun handleInvalidParticipant(ex: InvalidParticipantException): ResponseEntity<ErrorResponse> {
+        log.error("InvalidParticipantException: {}", ex.message, ex)
+        return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
+    }
+    
 }
