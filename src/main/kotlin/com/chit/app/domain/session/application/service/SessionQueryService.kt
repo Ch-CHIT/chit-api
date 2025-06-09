@@ -71,4 +71,10 @@ class SessionQueryService(
         return exists
     }
     
+    fun hasOpenContentsSession(channelId: String?): Map<String, Boolean> {
+        checkNotNull(channelId) { "유효하지 않은 channelId 입니다." }
+        val isOpen = sessionRepository.existsOpenSessionByChannelId(channelId)
+        return mapOf("isOpen" to isOpen)
+    }
+    
 }

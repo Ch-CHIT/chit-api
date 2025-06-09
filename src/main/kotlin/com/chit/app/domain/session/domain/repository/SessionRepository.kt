@@ -163,4 +163,13 @@ class SessionRepository(
             .limit(maxGroupParticipants.toLong())
             .fetch()
     
+    fun existsOpenSessionByChannelId(channelId: String): Boolean = query
+            .selectFrom(cs)
+            .join(m).on(cs.streamerId.eq(m.id))
+            .where(
+                m.channelId.eq(channelId),
+                cs._status.eq(SessionStatus.OPEN)
+            )
+            .fetchFirst() != null
+    
 }
