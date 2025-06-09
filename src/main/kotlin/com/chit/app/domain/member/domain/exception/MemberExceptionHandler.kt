@@ -15,19 +15,19 @@ class MemberExceptionHandler {
     
     @ExceptionHandler(MemberRegistrationException::class)
     fun handleRegistration(ex: MemberRegistrationException): ResponseEntity<ErrorResponse> {
-        log.error("MemberRegistrationException: {}", ex.message, ex)
+        log.error("MemberRegistrationException: {}", ex.message)
         return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
     }
     
     @ExceptionHandler(MemberNotFoundException::class)
     fun handleNotFound(ex: MemberNotFoundException): ResponseEntity<ErrorResponse> {
-        log.error("MemberNotFoundException: {}", ex.message, ex)
+        log.error("MemberNotFoundException: {}", ex.message)
         return failWithMessage(HttpStatus.NOT_FOUND, ex.message, ex.errorCode)
     }
     
     @ExceptionHandler(MemberValidationException::class)
     fun handleValidation(ex: MemberValidationException): ResponseEntity<ErrorResponse> {
-        log.error("MemberValidationException: {}", ex.message, ex)
+        log.error("MemberValidationException: {}", ex.message)
         return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
     }
     

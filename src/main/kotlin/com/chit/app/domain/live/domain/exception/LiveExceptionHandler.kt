@@ -15,19 +15,19 @@ class LiveExceptionHandler {
     
     @ExceptionHandler(InvalidLiveApiRequestException::class)
     fun handleInvalidRequest(ex: InvalidLiveApiRequestException): ResponseEntity<ErrorResponse> {
-        log.error("InvalidLiveApiRequestException: {}", ex.message, ex)
+        log.error("InvalidLiveApiRequestException: {}", ex.message)
         return failWithMessage(HttpStatus.BAD_REQUEST, ex.message, ex.errorCode)
     }
     
     @ExceptionHandler(LiveFetchException::class)
     fun handleFetchError(ex: LiveFetchException): ResponseEntity<ErrorResponse> {
-        log.error("LiveFetchException: {}", ex.message, ex)
+        log.error("LiveFetchException: {}", ex.message)
         return failWithMessage(HttpStatus.INTERNAL_SERVER_ERROR, ex.message, ex.errorCode)
     }
     
     @ExceptionHandler(LiveNotFoundException::class)
     fun handleNotFound(ex: LiveNotFoundException): ResponseEntity<ErrorResponse> {
-        log.error("LiveNotFoundException: {}", ex.message, ex)
+        log.error("LiveNotFoundException: {}", ex.message)
         return failWithMessage(HttpStatus.NOT_FOUND, ex.message, ex.errorCode)
     }
     
