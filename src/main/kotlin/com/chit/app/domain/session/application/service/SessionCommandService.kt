@@ -121,6 +121,7 @@ class SessionCommandService(
         
         ParticipantOrderManager.rotateFirstNOrdersToNextCycle(session)
         sseAdapter.notifyReorderedParticipants(SseEventType.SESSION_ORDER_UPDATED, session)
+        sseAdapter.emitNextPartyCalled(streamerId, session.sessionCode)
         log.info("[성공] 그룹 회전 처리 완료 (sessionCode={})", session.sessionCode)
     }
     

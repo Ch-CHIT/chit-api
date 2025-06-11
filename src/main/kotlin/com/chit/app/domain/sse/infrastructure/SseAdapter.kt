@@ -50,6 +50,12 @@ class SseAdapter(
     }
     
     @Async
+    fun emitNextPartyCalled(streamerId: Long, sessionCode: String) {
+        sendEvent(streamerId, sessionCode, SseEventType.CALLED_NEXT_PARTY, null)
+        log.info("[성공] 스트리머에게 다음 파티 호출 이벤트 전송 완료 (streamerId={}, sessionCode={})", streamerId, sessionCode)
+    }
+    
+    @Async
     fun emitParticipantFixedEventAsync(participant: SessionParticipant) {
         val contentsSession = participant.contentsSession
         
@@ -175,7 +181,14 @@ class SseAdapter(
             emitter.send(eventType, SseData(message = eventType.message, data = data))
             log.info("[성공] SSE 이벤트 전송 완료 (memberId={}, sessionCode={}, eventType={})", memberId, sessionCode, eventType.name)
         } catch (e: Exception) {
-            log.error("[실패] SSE 이벤트 전송 실패 (memberId={}, sessionCode={}, eventType={}) [부가정보: {}]", memberId, sessionCode, eventType.name, e.message, e)
+            log.error(
+                "[실패] SSE 이벤트 전송 실패 (memberId={}, sessionCode={}, eventType={}) [부가정보: {}]",
+                memberId,
+                sessionCode,
+                eventType.name,
+                e.message,
+                e
+            )
             emitter.complete()
         }
     }
